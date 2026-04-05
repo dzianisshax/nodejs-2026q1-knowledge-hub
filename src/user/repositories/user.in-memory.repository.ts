@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { IUserRepository } from './user.repository.interface';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdatePasswordDto } from '../dto/update-password.dto';
 
@@ -23,7 +23,7 @@ export class InMemoryUserRepository implements IUserRepository {
       id: uuidv4(),
       login: dto.login,
       password: dto.password,
-      role: dto.role ?? 'viewer',
+      role: dto.role ?? UserRole.VIEWER,
       createdAt: now,
       updatedAt: now,
     };

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { Article } from '../entities/article.entity';
+import { Article, ArticleStatus } from '../entities/article.entity';
 import { CreateArticleDto } from '../dto/create-article.dto';
 import { UpdateArticleDto } from '../dto/update-article.dto';
 import {
@@ -40,7 +40,7 @@ export class InMemoryArticleRepository implements IArticleRepository {
       id: uuidv4(),
       title: dto.title,
       content: dto.content,
-      status: dto.status ?? 'draft',
+      status: dto.status ?? ArticleStatus.DRAFT,
       authorId: dto.authorId ?? null,
       categoryId: dto.categoryId ?? null,
       tags: dto.tags ?? [],

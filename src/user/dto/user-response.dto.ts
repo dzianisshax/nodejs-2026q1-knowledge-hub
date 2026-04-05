@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 
 export class UserResponseDto {
   @ApiProperty({
@@ -19,7 +19,7 @@ export class UserResponseDto {
     example: 'admin',
     type: String,
   })
-  role?: 'admin' | 'editor' | 'viewer';
+  role?: UserRole;
 
   static fromEntity(user: User): UserResponseDto {
     const dto = new UserResponseDto();

@@ -1,11 +1,11 @@
-import { Article } from '../entities/article.entity';
+import { Article, ArticleStatus } from '../entities/article.entity';
 import { CreateArticleDto } from '../dto/create-article.dto';
 import { UpdateArticleDto } from '../dto/update-article.dto';
 
 export const ARTICLE_REPOSITORY = Symbol('ARTICLE_REPOSITORY');
 
 export interface ArticleFilterParams {
-  status?: string;
+  status?: ArticleStatus;
   categoryId?: string;
   tag?: string;
 }

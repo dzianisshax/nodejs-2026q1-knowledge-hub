@@ -3,11 +3,12 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsIn,
   IsArray,
   IsUUID,
   ArrayUnique,
+  IsEnum,
 } from 'class-validator';
+import { ArticleStatus } from '../entities/article.entity';
 
 export class UpdateArticleDto {
   @ApiPropertyOptional({
@@ -36,8 +37,8 @@ export class UpdateArticleDto {
     type: String,
   })
   @IsOptional()
-  @IsIn(['draft', 'published', 'archived'])
-  status?: 'draft' | 'published' | 'archived';
+  @IsEnum(ArticleStatus)
+  status?: ArticleStatus;
 
   @ApiPropertyOptional({
     description: 'Author id',
