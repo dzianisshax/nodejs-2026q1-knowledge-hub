@@ -13,5 +13,6 @@ import { ARTICLE_REPOSITORY } from './repositories/article.repository.interface'
       useClass: InMemoryArticleRepository,
     },
   ],
+  exports: [ArticleService],
 })
 export class ArticleModule {}
