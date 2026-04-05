@@ -54,12 +54,6 @@ export class ArticleController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createArticleDto: CreateArticleDto) {
-    if (!createArticleDto.title || !createArticleDto.content) {
-      throw new BadRequestException(
-        'Request body must contain title and content',
-      );
-    }
-
     return this.articleService.create(createArticleDto);
   }
 

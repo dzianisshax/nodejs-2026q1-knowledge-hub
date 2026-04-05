@@ -32,12 +32,6 @@ export class CommentController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createCommentDto: CreateCommentDto) {
-    if (!createCommentDto.content || !createCommentDto.articleId) {
-      throw new BadRequestException(
-        'Request body must contain content and articleId',
-      );
-    }
-
     return this.commentService.create(createCommentDto);
   }
 

@@ -45,12 +45,6 @@ export class CategoryController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createCategoryDto: CreateCategoryDto) {
-    if (!createCategoryDto.name || !createCategoryDto.description) {
-      throw new BadRequestException(
-        'Request body must contain name and description',
-      );
-    }
-
     return this.categoryService.create(createCategoryDto);
   }
 

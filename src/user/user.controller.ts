@@ -52,12 +52,6 @@ export class UserController {
   @ApiOkResponse({ type: UserResponseDto })
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createUserDto: CreateUserDto) {
-    if (!createUserDto.login || !createUserDto.password) {
-      throw new BadRequestException(
-        'Request body must contain login and password',
-      );
-    }
-
     const user = this.userService.create(createUserDto);
     return UserResponseDto.fromEntity(user);
   }
