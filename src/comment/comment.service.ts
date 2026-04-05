@@ -11,6 +11,8 @@ import {
   ICommentRepository,
 } from './repositories/comment.repository.interface';
 import { ArticleService } from '../article/article.service';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { paginate } from '../common/helpers/paginate.helper';
 
 @Injectable()
 export class CommentService {
@@ -21,8 +23,16 @@ export class CommentService {
     private readonly articleService: ArticleService,
   ) {}
 
-  findAllByArticleId(articleId: string): Comment[] {
-    return this.commentRepository.findAllByArticleId(articleId);
+  findAllByArticleId(
+    articleId: string,
+    page: number,
+    limit: number,
+  ): PaginatedResponseDto<Comment> {
+    return paginate(
+      this.commentRepository.findAllByArticleId(articleId),
+      page,
+      limit,
+    );
   }
 
   findOne(id: string): Comment | null {

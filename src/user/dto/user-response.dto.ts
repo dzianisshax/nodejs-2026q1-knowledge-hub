@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { User, UserRole } from '../entities/user.entity';
+import { PaginatedResponseDto } from 'src/common/dto/paginated-response.dto';
 
 export class UserResponseDto {
   @ApiProperty({
@@ -8,16 +9,18 @@ export class UserResponseDto {
     type: String,
   })
   id: string;
+
   @ApiProperty({
     description: 'User login',
     example: 'Admin',
     type: String,
   })
   login: string;
+
   @ApiProperty({
     description: 'User role',
     example: 'admin',
-    type: String,
+    enum: UserRole,
   })
   role?: UserRole;
 
@@ -29,7 +32,14 @@ export class UserResponseDto {
     return dto;
   }
 
-  static fromEntities(users: User[]): UserResponseDto[] {
-    return users.map((u) => UserResponseDto.fromEntity(u));
+  static fromPaginated(
+    paginated: PaginatedResponseDto<User>,
+  ): PaginatedResponseDto<UserResponseDto> {
+    return new PaginatedResponseDto(
+      paginated.data.map((u) => UserResponseDto.fromEntity(u)),
+      paginated.total,
+      paginated.page,
+      paginated.limit,
+    );
   }
 }

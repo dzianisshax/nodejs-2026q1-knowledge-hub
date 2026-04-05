@@ -8,6 +8,8 @@ import {
   IArticleRepository,
 } from './repositories/article.repository.interface';
 import { CommentService } from '../comment/comment.service';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { paginate } from '../common/helpers/paginate.helper';
 
 @Injectable()
 export class ArticleService {
@@ -18,8 +20,12 @@ export class ArticleService {
     private readonly commentService: CommentService,
   ) {}
 
-  findAll(filters: ArticleFilterParams): Article[] {
-    return this.articleRepository.findAll(filters);
+  findAll(
+    filters: ArticleFilterParams,
+    page: number,
+    limit: number,
+  ): PaginatedResponseDto<Article> {
+    return paginate(this.articleRepository.findAll(filters), page, limit);
   }
 
   findOne(id: string): Article | null {

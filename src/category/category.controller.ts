@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Delete,
+  Query,
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -15,6 +16,7 @@ import { validate as isUuid } from 'uuid';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('category')
 export class CategoryController {
@@ -22,8 +24,8 @@ export class CategoryController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll() {
-    return this.categoryService.findAll();
+  findAll(@Query() pagination: PaginationQueryDto) {
+    return this.categoryService.findAll(pagination.page, pagination.limit);
   }
 
   @Get(':id')

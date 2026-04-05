@@ -6,29 +6,33 @@ import {
   Put,
   Param,
   Delete,
+  Query,
   HttpCode,
   HttpStatus,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { validate as isUuid } from 'uuid';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
-import { validate as isUuid } from 'uuid';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { ApiOkResponse } from '@nestjs/swagger';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  @ApiOkResponse({ type: [UserResponseDto] })
   @HttpCode(HttpStatus.OK)
-  findAll() {
-    const users = this.userService.findAll();
-    return UserResponseDto.fromEntities(users);
+  findAll(@Query() pagination: PaginationQueryDto) {
+    const paginated = this.userService.findAll(
+      pagination.page,
+      pagination.limit,
+    );
+    return UserResponseDto.fromPaginated(paginated);
   }
 
   @Get(':id')

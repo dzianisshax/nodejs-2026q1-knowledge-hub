@@ -7,6 +7,8 @@ import {
   ICategoryRepository,
 } from './repositories/category.repository.interface';
 import { ArticleService } from '../article/article.service';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { paginate } from '../common/helpers/paginate.helper';
 
 @Injectable()
 export class CategoryService {
@@ -16,8 +18,8 @@ export class CategoryService {
     private readonly articleService: ArticleService,
   ) {}
 
-  findAll(): Category[] {
-    return this.categoryRepository.findAll();
+  findAll(page: number, limit: number): PaginatedResponseDto<Category> {
+    return paginate(this.categoryRepository.findAll(), page, limit);
   }
 
   findOne(id: string): Category | null {

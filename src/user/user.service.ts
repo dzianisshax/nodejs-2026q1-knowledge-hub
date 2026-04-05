@@ -6,6 +6,8 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { User } from './entities/user.entity';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { paginate } from '../common/helpers/paginate.helper';
 import { ArticleService } from '../article/article.service';
 import { CommentService } from '../comment/comment.service';
 
@@ -18,8 +20,8 @@ export class UserService {
     private readonly commentService: CommentService,
   ) {}
 
-  findAll(): User[] {
-    return this.userRepository.findAll();
+  findAll(page: number, limit: number): PaginatedResponseDto<User> {
+    return paginate(this.userRepository.findAll(), page, limit);
   }
 
   findOne(id: string): User | null {

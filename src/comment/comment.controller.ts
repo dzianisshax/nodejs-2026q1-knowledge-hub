@@ -14,6 +14,7 @@ import {
 import { validate as isUuid } from 'uuid';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('comment')
 export class CommentController {
@@ -21,12 +22,19 @@ export class CommentController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll(@Query('articleId') articleId: string) {
+  findAll(
+    @Query() pagination: PaginationQueryDto,
+    @Query('articleId') articleId: string,
+  ) {
     if (!articleId) {
       throw new BadRequestException('Query parameter articleId is required');
     }
 
-    return this.commentService.findAllByArticleId(articleId);
+    return this.commentService.findAllByArticleId(
+      articleId,
+      pagination.page,
+      pagination.limit,
+    );
   }
 
   @Post()
