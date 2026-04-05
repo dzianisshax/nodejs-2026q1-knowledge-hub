@@ -16,9 +16,7 @@ import { validate as isUuid } from 'uuid';
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
-import { ApiQuery } from '@nestjs/swagger';
-import { ArticleStatus } from './entities/article.entity';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { ArticleQueryDto } from './dto/article-query.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -26,20 +24,13 @@ export class ArticleController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiQuery({ name: 'status', required: false, type: String })
-  @ApiQuery({ name: 'categoryId', required: false, type: String })
-  @ApiQuery({ name: 'tag', required: false, type: String })
-  findAll(
-    @Query() pagination: PaginationQueryDto,
-    @Query('status') status?: ArticleStatus,
-    @Query('categoryId') categoryId?: string,
-    @Query('tag') tag?: string,
-  ) {
-    return this.articleService.findAll(
-      { status, categoryId, tag },
-      pagination.page,
-      pagination.limit,
+  findAll(@Query() query: ArticleQueryDto) {
+    const paginated = this.articleService.findAll(
+      { status: query.status, categoryId: query.categoryId, tag: query.tag },
+      query.page,
+      query.limit,
     );
+    return paginated.data;
   }
 
   @Get(':id')

@@ -24,22 +24,33 @@ export class UserResponseDto {
   })
   role?: UserRole;
 
+  @ApiProperty({
+    description: 'Timestamp of creation',
+    example: 123,
+    type: Number,
+  })
+  createdAt: number;
+
+  @ApiProperty({
+    description: 'Timestamp of last update',
+    example: 123,
+    type: Number,
+  })
+  updatedAt: number;
+
   static fromEntity(user: User): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
     dto.login = user.login;
     dto.role = user.role;
+    dto.createdAt = user.createdAt;
+    dto.updatedAt = user.updatedAt;
     return dto;
   }
 
   static fromPaginated(
     paginated: PaginatedResponseDto<User>,
-  ): PaginatedResponseDto<UserResponseDto> {
-    return new PaginatedResponseDto(
-      paginated.data.map((u) => UserResponseDto.fromEntity(u)),
-      paginated.total,
-      paginated.page,
-      paginated.limit,
-    );
+  ): UserResponseDto[] {
+    return paginated.data.map((u) => UserResponseDto.fromEntity(u));
   }
 }

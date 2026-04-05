@@ -25,7 +25,11 @@ export class CategoryController {
   @Get()
   @HttpCode(HttpStatus.OK)
   findAll(@Query() pagination: PaginationQueryDto) {
-    return this.categoryService.findAll(pagination.page, pagination.limit);
+    const paginated = this.categoryService.findAll(
+      pagination.page,
+      pagination.limit,
+    );
+    return paginated.data;
   }
 
   @Get(':id')
