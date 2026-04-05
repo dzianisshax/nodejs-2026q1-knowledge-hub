@@ -16,4 +16,6 @@ export interface IArticleRepository {
   create(dto: CreateArticleDto): Article;
   update(id: string, dto: UpdateArticleDto): Article;
   delete(id: string): void;
+  nullifyAuthorId(authorId: string): void;
+  nullifyCategoryId(categoryId: string): void;
 }

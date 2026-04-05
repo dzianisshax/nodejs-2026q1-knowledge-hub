@@ -8,4 +8,6 @@ export interface ICommentRepository {
   findById(id: string): Comment | null;
   create(dto: CreateCommentDto): Comment;
   delete(id: string): void;
+  deleteByArticleId(articleId: string): void;
+  deleteByAuthorId(authorId: string): void;
 }

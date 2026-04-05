@@ -34,4 +34,20 @@ export class InMemoryCommentRepository implements ICommentRepository {
   delete(id: string): void {
     this.comments.delete(id);
   }
+
+  deleteByArticleId(articleId: string): void {
+    for (const [id, comment] of this.comments) {
+      if (comment.articleId === articleId) {
+        this.comments.delete(id);
+      }
+    }
+  }
+
+  deleteByAuthorId(authorId: string): void {
+    for (const [id, comment] of this.comments) {
+      if (comment.authorId === authorId) {
+        this.comments.delete(id);
+      }
+    }
+  }
 }

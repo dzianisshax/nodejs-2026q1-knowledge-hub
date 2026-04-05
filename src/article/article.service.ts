@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { Article } from './entities/article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -7,12 +7,15 @@ import {
   ArticleFilterParams,
   IArticleRepository,
 } from './repositories/article.repository.interface';
+import { CommentService } from '../comment/comment.service';
 
 @Injectable()
 export class ArticleService {
   constructor(
     @Inject(ARTICLE_REPOSITORY)
     private readonly articleRepository: IArticleRepository,
+    @Inject(forwardRef(() => CommentService)) // forwardRef on the injected service
+    private readonly commentService: CommentService,
   ) {}
 
   findAll(filters: ArticleFilterParams): Article[] {
@@ -32,6 +35,15 @@ export class ArticleService {
   }
 
   delete(id: string): void {
+    this.commentService.removeByArticleId(id);
     this.articleRepository.delete(id);
+  }
+
+  nullifyAuthorId(authorId: string): void {
+    this.articleRepository.nullifyAuthorId(authorId);
+  }
+
+  nullifyCategoryId(categoryId: string): void {
+    this.articleRepository.nullifyCategoryId(categoryId);
   }
 }

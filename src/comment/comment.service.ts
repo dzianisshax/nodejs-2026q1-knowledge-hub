@@ -2,6 +2,7 @@ import {
   Inject,
   Injectable,
   UnprocessableEntityException,
+  forwardRef,
 } from '@nestjs/common';
 import { Comment } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -16,6 +17,7 @@ export class CommentService {
   constructor(
     @Inject(COMMENT_REPOSITORY)
     private readonly commentRepository: ICommentRepository,
+    @Inject(forwardRef(() => ArticleService)) // forwardRef on the injected service
     private readonly articleService: ArticleService,
   ) {}
 
@@ -41,5 +43,13 @@ export class CommentService {
 
   delete(id: string): void {
     this.commentRepository.delete(id);
+  }
+
+  removeByArticleId(articleId: string): void {
+    this.commentRepository.deleteByArticleId(articleId);
+  }
+
+  removeByAuthorId(authorId: string): void {
+    this.commentRepository.deleteByAuthorId(authorId);
   }
 }

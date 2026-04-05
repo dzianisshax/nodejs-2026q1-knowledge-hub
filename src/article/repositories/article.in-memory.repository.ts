@@ -72,4 +72,20 @@ export class InMemoryArticleRepository implements IArticleRepository {
   delete(id: string): void {
     this.articles.delete(id);
   }
+
+  nullifyAuthorId(authorId: string): void {
+    for (const [id, article] of this.articles) {
+      if (article.authorId === authorId) {
+        this.articles.set(id, { ...article, authorId: null });
+      }
+    }
+  }
+
+  nullifyCategoryId(categoryId: string): void {
+    for (const [id, article] of this.articles) {
+      if (article.categoryId === categoryId) {
+        this.articles.set(id, { ...article, categoryId: null });
+      }
+    }
+  }
 }

@@ -6,12 +6,16 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { User } from './entities/user.entity';
+import { ArticleService } from '../article/article.service';
+import { CommentService } from '../comment/comment.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
+    private readonly articleService: ArticleService,
+    private readonly commentService: CommentService,
   ) {}
 
   findAll(): User[] {
@@ -31,6 +35,8 @@ export class UserService {
   }
 
   delete(id: string): void {
+    this.articleService.nullifyAuthorId(id);
+    this.commentService.removeByAuthorId(id);
     this.userRepository.delete(id);
   }
 }

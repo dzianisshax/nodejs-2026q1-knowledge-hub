@@ -6,12 +6,14 @@ import {
   CATEGORY_REPOSITORY,
   ICategoryRepository,
 } from './repositories/category.repository.interface';
+import { ArticleService } from '../article/article.service';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: ICategoryRepository,
+    private readonly articleService: ArticleService,
   ) {}
 
   findAll(): Category[] {
@@ -31,6 +33,7 @@ export class CategoryService {
   }
 
   delete(id: string): void {
+    this.articleService.nullifyCategoryId(id);
     this.categoryRepository.delete(id);
   }
 }
