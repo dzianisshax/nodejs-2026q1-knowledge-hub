@@ -20,25 +20,28 @@ export class UserService {
     private readonly commentService: CommentService,
   ) {}
 
-  findAll(page: number, limit: number): PaginatedResponseDto<User> {
-    return paginate(this.userRepository.findAll(), page, limit);
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponseDto<User>> {
+    return paginate(await this.userRepository.findAll(), page, limit);
   }
 
-  findOne(id: string): User | null {
+  async findOne(id: string): Promise<User | null> {
     return this.userRepository.findById(id);
   }
 
-  create(dto: CreateUserDto): User {
+  async create(dto: CreateUserDto): Promise<User> {
     return this.userRepository.create(dto);
   }
 
-  update(id: string, dto: UpdatePasswordDto): User {
+  async update(id: string, dto: UpdatePasswordDto): Promise<User> {
     return this.userRepository.update(id, dto);
   }
 
-  delete(id: string): void {
-    this.articleService.nullifyAuthorId(id);
-    this.commentService.removeByAuthorId(id);
-    this.userRepository.delete(id);
+  async delete(id: string): Promise<void> {
+    await this.articleService.nullifyAuthorId(id);
+    await this.commentService.removeByAuthorId(id);
+    await this.userRepository.delete(id);
   }
 }

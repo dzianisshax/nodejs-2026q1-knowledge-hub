@@ -22,8 +22,8 @@ export class CommentController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll(@Query() query: CommentQueryDto) {
-    const paginated = this.commentService.findAllByArticleId(
+  async findAll(@Query() query: CommentQueryDto) {
+    const paginated = await this.commentService.findAllByArticleId(
       query.articleId,
       query.page,
       query.limit,
@@ -33,12 +33,12 @@ export class CommentController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`commentId ${id} is invalid (not uuid)`);
     }
 
-    const comment = this.commentService.findOne(id);
+    const comment = await this.commentService.findOne(id);
 
     if (!comment) {
       throw new NotFoundException(`Comment with id ${id} not found`);
@@ -49,23 +49,23 @@ export class CommentController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createCommentDto: CreateCommentDto) {
-    return this.commentService.create(createCommentDto);
+  async create(@Body() createCommentDto: CreateCommentDto) {
+    return await this.commentService.create(createCommentDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`commentId ${id} is invalid (not uuid)`);
     }
 
-    const comment = this.commentService.findOne(id);
+    const comment = await this.commentService.findOne(id);
 
     if (!comment) {
       throw new NotFoundException(`Comment with id ${id} not found`);
     }
 
-    this.commentService.delete(id);
+    await this.commentService.delete(id);
   }
 }

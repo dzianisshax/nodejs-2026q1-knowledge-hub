@@ -11,11 +11,11 @@ export interface ArticleFilterParams {
 }
 
 export interface IArticleRepository {
-  findAll(filters?: ArticleFilterParams): Article[];
-  findById(id: string): Article | null;
-  create(dto: CreateArticleDto): Article;
-  update(id: string, dto: UpdateArticleDto): Article;
-  delete(id: string): void;
-  nullifyAuthorId(authorId: string): void;
-  nullifyCategoryId(categoryId: string): void;
+  findAll(filters?: ArticleFilterParams): Promise<Article[]>;
+  findById(id: string): Promise<Article | null>;
+  create(dto: CreateArticleDto): Promise<Article>;
+  update(id: string, dto: UpdateArticleDto): Promise<Article>;
+  delete(id: string): Promise<void>;
+  nullifyAuthorId(authorId: string): Promise<void>;
+  nullifyCategoryId(categoryId: string): Promise<void>;
 }

@@ -20,36 +20,36 @@ export class ArticleService {
     private readonly commentService: CommentService,
   ) {}
 
-  findAll(
+  async findAll(
     filters: ArticleFilterParams,
     page: number,
     limit: number,
-  ): PaginatedResponseDto<Article> {
-    return paginate(this.articleRepository.findAll(filters), page, limit);
+  ): Promise<PaginatedResponseDto<Article>> {
+    return paginate(await this.articleRepository.findAll(filters), page, limit);
   }
 
-  findOne(id: string): Article | null {
+  async findOne(id: string): Promise<Article | null> {
     return this.articleRepository.findById(id);
   }
 
-  create(dto: CreateArticleDto): Article {
+  async create(dto: CreateArticleDto): Promise<Article> {
     return this.articleRepository.create(dto);
   }
 
-  update(id: string, dto: UpdateArticleDto): Article {
+  async update(id: string, dto: UpdateArticleDto): Promise<Article> {
     return this.articleRepository.update(id, dto);
   }
 
-  delete(id: string): void {
-    this.commentService.removeByArticleId(id);
-    this.articleRepository.delete(id);
+  async delete(id: string): Promise<void> {
+    await this.commentService.removeByArticleId(id);
+    await this.articleRepository.delete(id);
   }
 
-  nullifyAuthorId(authorId: string): void {
-    this.articleRepository.nullifyAuthorId(authorId);
+  async nullifyAuthorId(authorId: string): Promise<void> {
+    await this.articleRepository.nullifyAuthorId(authorId);
   }
 
-  nullifyCategoryId(categoryId: string): void {
-    this.articleRepository.nullifyCategoryId(categoryId);
+  async nullifyCategoryId(categoryId: string): Promise<void> {
+    await this.articleRepository.nullifyCategoryId(categoryId);
   }
 }
