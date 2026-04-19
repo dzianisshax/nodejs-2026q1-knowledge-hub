@@ -24,8 +24,8 @@ export class ArticleController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll(@Query() query: ArticleQueryDto) {
-    const paginated = this.articleService.findAll(
+  async findAll(@Query() query: ArticleQueryDto) {
+    const paginated = await this.articleService.findAll(
       { status: query.status, categoryId: query.categoryId, tag: query.tag },
       query.page,
       query.limit,
@@ -35,12 +35,12 @@ export class ArticleController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`articleId ${id} is invalid (not uuid)`);
     }
 
-    const article = this.articleService.findOne(id);
+    const article = await this.articleService.findOne(id);
 
     if (!article) {
       throw new NotFoundException(`Article with id ${id} not found`);
@@ -51,39 +51,42 @@ export class ArticleController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createArticleDto: CreateArticleDto) {
-    return this.articleService.create(createArticleDto);
+  async create(@Body() createArticleDto: CreateArticleDto) {
+    return await this.articleService.create(createArticleDto);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateArticleDto: UpdateArticleDto,
+  ) {
     if (!isUuid(id)) {
       throw new BadRequestException(`articleId ${id} is invalid (not uuid)`);
     }
 
-    const article = this.articleService.findOne(id);
+    const article = await this.articleService.findOne(id);
 
     if (!article) {
       throw new NotFoundException(`Article with id ${id} not found`);
     }
 
-    return this.articleService.update(id, updateArticleDto);
+    return await this.articleService.update(id, updateArticleDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`articleId ${id} is invalid (not uuid)`);
     }
 
-    const article = this.articleService.findOne(id);
+    const article = await this.articleService.findOne(id);
 
     if (!article) {
       throw new NotFoundException(`Article with id ${id} not found`);
     }
 
-    this.articleService.delete(id);
+    await this.articleService.delete(id);
   }
 }

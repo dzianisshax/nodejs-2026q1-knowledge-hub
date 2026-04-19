@@ -18,24 +18,27 @@ export class CategoryService {
     private readonly articleService: ArticleService,
   ) {}
 
-  findAll(page: number, limit: number): PaginatedResponseDto<Category> {
-    return paginate(this.categoryRepository.findAll(), page, limit);
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponseDto<Category>> {
+    return paginate(await this.categoryRepository.findAll(), page, limit);
   }
 
-  findOne(id: string): Category | null {
+  async findOne(id: string): Promise<Category | null> {
     return this.categoryRepository.findById(id);
   }
 
-  create(dto: CreateCategoryDto): Category {
+  async create(dto: CreateCategoryDto): Promise<Category> {
     return this.categoryRepository.create(dto);
   }
 
-  update(id: string, dto: UpdateCategoryDto): Category {
+  async update(id: string, dto: UpdateCategoryDto): Promise<Category> {
     return this.categoryRepository.update(id, dto);
   }
 
-  delete(id: string): void {
-    this.articleService.nullifyCategoryId(id);
-    this.categoryRepository.delete(id);
+  async delete(id: string): Promise<void> {
+    await this.articleService.nullifyCategoryId(id);
+    await this.categoryRepository.delete(id);
   }
 }

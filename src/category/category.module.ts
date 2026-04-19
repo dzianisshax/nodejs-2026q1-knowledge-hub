@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CategoryController } from './category.controller';
 import { CategoryService } from './category.service';
-import { InMemoryCategoryRepository } from './repositories/category.in-memory.repository';
+import { PrismaCategoryRepository } from './repositories/category.prisma.repository';
 import { CATEGORY_REPOSITORY } from './repositories/category.repository.interface';
 import { ArticleModule } from '../article/article.module';
 
@@ -10,10 +10,7 @@ import { ArticleModule } from '../article/article.module';
   controllers: [CategoryController],
   providers: [
     CategoryService,
-    {
-      provide: CATEGORY_REPOSITORY,
-      useClass: InMemoryCategoryRepository,
-    },
+    { provide: CATEGORY_REPOSITORY, useClass: PrismaCategoryRepository },
   ],
 })
 export class CategoryModule {}

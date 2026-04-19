@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { CommentController } from './comment.controller';
 import { CommentService } from './comment.service';
-import { InMemoryCommentRepository } from './repositories/comment.in-memory.repository';
+import { PrismaCommentRepository } from './repositories/comment.prisma.repository';
 import { COMMENT_REPOSITORY } from './repositories/comment.repository.interface';
 import { ArticleModule } from '../article/article.module';
 
@@ -10,10 +10,7 @@ import { ArticleModule } from '../article/article.module';
   controllers: [CommentController],
   providers: [
     CommentService,
-    {
-      provide: COMMENT_REPOSITORY,
-      useClass: InMemoryCommentRepository,
-    },
+    { provide: COMMENT_REPOSITORY, useClass: PrismaCommentRepository },
   ],
   exports: [CommentService],
 })

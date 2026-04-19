@@ -5,9 +5,9 @@ import { UpdatePasswordDto } from '../dto/update-password.dto';
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 
 export interface IUserRepository {
-  findAll(): User[];
-  findById(id: string): User | null;
-  create(dto: CreateUserDto): User;
-  update(id: string, dto: UpdatePasswordDto): User;
-  delete(id: string): void;
+  findAll(): Promise<User[]>;
+  findById(id: string): Promise<User | null>;
+  create(dto: CreateUserDto): Promise<User>;
+  update(id: string, dto: UpdatePasswordDto): Promise<User>;
+  delete(id: string): Promise<void>;
 }

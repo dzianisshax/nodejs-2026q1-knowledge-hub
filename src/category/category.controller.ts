@@ -24,8 +24,8 @@ export class CategoryController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll(@Query() pagination: PaginationQueryDto) {
-    const paginated = this.categoryService.findAll(
+  async findAll(@Query() pagination: PaginationQueryDto) {
+    const paginated = await this.categoryService.findAll(
       pagination.page,
       pagination.limit,
     );
@@ -34,12 +34,12 @@ export class CategoryController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`categoryId ${id} is invalid (not uuid)`);
     }
 
-    const category = this.categoryService.findOne(id);
+    const category = await this.categoryService.findOne(id);
 
     if (!category) {
       throw new NotFoundException(`Category with id ${id} not found`);
@@ -50,13 +50,13 @@ export class CategoryController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoryService.create(createCategoryDto);
+  async create(@Body() createCategoryDto: CreateCategoryDto) {
+    return await this.categoryService.create(createCategoryDto);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
@@ -64,28 +64,28 @@ export class CategoryController {
       throw new BadRequestException(`categoryId ${id} is invalid (not uuid)`);
     }
 
-    const category = this.categoryService.findOne(id);
+    const category = await this.categoryService.findOne(id);
 
     if (!category) {
       throw new NotFoundException(`Category with id ${id} not found`);
     }
 
-    return this.categoryService.update(id, updateCategoryDto);
+    return await this.categoryService.update(id, updateCategoryDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`categoryId ${id} is invalid (not uuid)`);
     }
 
-    const category = this.categoryService.findOne(id);
+    const category = await this.categoryService.findOne(id);
 
     if (!category) {
       throw new NotFoundException(`Category with id ${id} not found`);
     }
 
-    this.categoryService.delete(id);
+    await this.categoryService.delete(id);
   }
 }
