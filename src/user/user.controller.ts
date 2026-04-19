@@ -20,7 +20,13 @@ import { UpdatePasswordDto } from './dto/update-password.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { ApiOkResponse } from '@nestjs/swagger';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserRole } from './entities/user.entity';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
 
+@BearerAuth()
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -54,6 +60,7 @@ export class UserController {
 
   @Post()
   @ApiOkResponse({ type: UserResponseDto })
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
@@ -66,6 +73,7 @@ export class UserController {
   async update(
     @Param('id') id: string,
     @Body() updatePasswordDto: UpdatePasswordDto,
+    @CurrentUser() currentUser: JwtPayload,
   ) {
     if (!isUuid(id)) {
       throw new BadRequestException(`userId ${id} is invalid (not uuid)`);
@@ -77,6 +85,11 @@ export class UserController {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
+    // Only the user themselves or an admin can change the password
+    if (currentUser.userId !== id && currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('You can only change your own password');
+    }
+
     if (user.password !== updatePasswordDto.oldPassword) {
       throw new ForbiddenException('Old password is incorrect');
     }
@@ -86,6 +99,7 @@ export class UserController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     if (!isUuid(id)) {

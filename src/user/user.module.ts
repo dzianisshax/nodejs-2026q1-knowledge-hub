@@ -13,5 +13,6 @@ import { CommentModule } from '../comment/comment.module';
     UserService,
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
   ],
+  exports: [UserService],
 })
 export class UserModule {}

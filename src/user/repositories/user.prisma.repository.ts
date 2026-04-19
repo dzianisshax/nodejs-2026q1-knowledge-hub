@@ -5,6 +5,7 @@ import { IUserRepository } from './user.repository.interface';
 import { User, UserRole } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdatePasswordDto } from '../dto/update-password.dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
@@ -22,8 +23,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async findAll(): Promise<User[]> {
-    const rows = await this.prisma.user.findMany();
-    return rows.map((r) => this.toEntity(r));
+    return (await this.prisma.user.findMany()).map((r) => this.toEntity(r));
   }
 
   async findById(id: string): Promise<User | null> {
@@ -31,24 +31,35 @@ export class PrismaUserRepository implements IUserRepository {
     return row ? this.toEntity(row) : null;
   }
 
+  async findByLogin(login: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({ where: { login } });
+    return row ? this.toEntity(row) : null;
+  }
+
   async create(dto: CreateUserDto): Promise<User> {
+    const hash = await bcrypt.hash(dto.password, 10);
     const row = await this.prisma.user.create({
       data: {
         login: dto.login,
-        password: dto.password,
+        password: hash,
         role: (dto.role?.toUpperCase() ?? 'VIEWER') as PrismaUserRole,
       },
     });
     return this.toEntity(row);
   }
 
+  async createWithHash(login: string, hash: string): Promise<User> {
+    const row = await this.prisma.user.create({
+      data: { login, password: hash, role: 'VIEWER' },
+    });
+    return this.toEntity(row);
+  }
+
   async update(id: string, dto: UpdatePasswordDto): Promise<User> {
+    const hash = await bcrypt.hash(dto.newPassword, 10);
     const row = await this.prisma.user.update({
       where: { id },
-      data: {
-        password: dto.newPassword,
-        version: { increment: 1 },
-      },
+      data: { password: hash, version: { increment: 1 } },
     });
     return this.toEntity(row);
   }

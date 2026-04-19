@@ -31,8 +31,16 @@ export class UserService {
     return this.userRepository.findById(id);
   }
 
+  async findByLogin(login: string): Promise<User | null> {
+    return this.userRepository.findByLogin(login);
+  }
+
   async create(dto: CreateUserDto): Promise<User> {
     return this.userRepository.create(dto);
+  }
+
+  async createWithHash(login: string, hash: string): Promise<User> {
+    return this.userRepository.createWithHash(login, hash);
   }
 
   async update(id: string, dto: UpdatePasswordDto): Promise<User> {
