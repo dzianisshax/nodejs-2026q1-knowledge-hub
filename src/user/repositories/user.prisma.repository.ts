@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { UserRole as PrismaUserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IUserRepository } from './user.repository.interface';
 import { User, UserRole } from '../entities/user.entity';
@@ -16,7 +15,7 @@ export class PrismaUserRepository implements IUserRepository {
       id: raw.id,
       login: raw.login,
       password: raw.password,
-      role: raw.role.toLowerCase() as UserRole,
+      role: raw.role as UserRole,
       createdAt: raw.createdAt.getTime(),
       updatedAt: raw.updatedAt.getTime(),
     };
@@ -42,7 +41,7 @@ export class PrismaUserRepository implements IUserRepository {
       data: {
         login: dto.login,
         password: hash,
-        role: (dto.role?.toUpperCase() ?? 'VIEWER') as PrismaUserRole,
+        role: dto.role ?? UserRole.VIEWER,
       },
     });
     return this.toEntity(row);
@@ -50,7 +49,11 @@ export class PrismaUserRepository implements IUserRepository {
 
   async createWithHash(login: string, hash: string): Promise<User> {
     const row = await this.prisma.user.create({
-      data: { login, password: hash, role: 'VIEWER' },
+      data: {
+        login,
+        password: hash,
+        role: UserRole.VIEWER,
+      },
     });
     return this.toEntity(row);
   }
@@ -59,7 +62,7 @@ export class PrismaUserRepository implements IUserRepository {
     const hash = await bcrypt.hash(dto.newPassword, 10);
     const row = await this.prisma.user.update({
       where: { id },
-      data: { password: hash, version: { increment: 1 } },
+      data: { password: hash },
     });
     return this.toEntity(row);
   }
