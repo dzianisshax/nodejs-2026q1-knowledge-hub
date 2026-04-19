@@ -23,24 +23,24 @@ export class CommentService {
     private readonly articleService: ArticleService,
   ) {}
 
-  findAllByArticleId(
+  async findAllByArticleId(
     articleId: string,
     page: number,
     limit: number,
-  ): PaginatedResponseDto<Comment> {
+  ): Promise<PaginatedResponseDto<Comment>> {
     return paginate(
-      this.commentRepository.findAllByArticleId(articleId),
+      await this.commentRepository.findAllByArticleId(articleId),
       page,
       limit,
     );
   }
 
-  findOne(id: string): Comment | null {
+  async findOne(id: string): Promise<Comment | null> {
     return this.commentRepository.findById(id);
   }
 
-  create(dto: CreateCommentDto): Comment {
-    const article = this.articleService.findOne(dto.articleId);
+  async create(dto: CreateCommentDto): Promise<Comment> {
+    const article = await this.articleService.findOne(dto.articleId);
 
     if (!article) {
       throw new UnprocessableEntityException(
@@ -51,15 +51,15 @@ export class CommentService {
     return this.commentRepository.create(dto);
   }
 
-  delete(id: string): void {
-    this.commentRepository.delete(id);
+  async delete(id: string): Promise<void> {
+    await this.commentRepository.delete(id);
   }
 
-  removeByArticleId(articleId: string): void {
-    this.commentRepository.deleteByArticleId(articleId);
+  async removeByArticleId(articleId: string): Promise<void> {
+    await this.commentRepository.deleteByArticleId(articleId);
   }
 
-  removeByAuthorId(authorId: string): void {
-    this.commentRepository.deleteByAuthorId(authorId);
+  async removeByAuthorId(authorId: string): Promise<void> {
+    await this.commentRepository.deleteByAuthorId(authorId);
   }
 }

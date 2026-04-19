@@ -5,9 +5,9 @@ import { UpdateCategoryDto } from '../dto/update-category.dto';
 export const CATEGORY_REPOSITORY = Symbol('CATEGORY_REPOSITORY');
 
 export interface ICategoryRepository {
-  findAll(): Category[];
-  findById(id: string): Category | null;
-  create(dto: CreateCategoryDto): Category;
-  update(id: string, dto: UpdateCategoryDto): Category;
-  delete(id: string): void;
+  findAll(): Promise<Category[]>;
+  findById(id: string): Promise<Category | null>;
+  create(dto: CreateCategoryDto): Promise<Category>;
+  update(id: string, dto: UpdateCategoryDto): Promise<Category>;
+  delete(id: string): Promise<void>;
 }

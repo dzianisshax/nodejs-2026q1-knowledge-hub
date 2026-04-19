@@ -27,8 +27,8 @@ export class UserController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll(@Query() pagination: PaginationQueryDto) {
-    const paginated = this.userService.findAll(
+  async findAll(@Query() pagination: PaginationQueryDto) {
+    const paginated = await this.userService.findAll(
       pagination.page,
       pagination.limit,
     );
@@ -38,12 +38,12 @@ export class UserController {
   @Get(':id')
   @ApiOkResponse({ type: UserResponseDto })
   @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`userId ${id} is invalid (not uuid)`);
     }
 
-    const user = this.userService.findOne(id);
+    const user = await this.userService.findOne(id);
 
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
@@ -55,15 +55,15 @@ export class UserController {
   @Post()
   @ApiOkResponse({ type: UserResponseDto })
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createUserDto: CreateUserDto) {
-    const user = this.userService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    const user = await this.userService.create(createUserDto);
     return UserResponseDto.fromEntity(user);
   }
 
   @Put(':id')
   @ApiOkResponse({ type: UserResponseDto })
   @HttpCode(HttpStatus.OK)
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updatePasswordDto: UpdatePasswordDto,
   ) {
@@ -71,7 +71,7 @@ export class UserController {
       throw new BadRequestException(`userId ${id} is invalid (not uuid)`);
     }
 
-    const user = this.userService.findOne(id);
+    const user = await this.userService.findOne(id);
 
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
@@ -81,23 +81,23 @@ export class UserController {
       throw new ForbiddenException('Old password is incorrect');
     }
 
-    const updatedUser = this.userService.update(id, updatePasswordDto);
+    const updatedUser = await this.userService.update(id, updatePasswordDto);
     return UserResponseDto.fromEntity(updatedUser);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string) {
     if (!isUuid(id)) {
       throw new BadRequestException(`userId ${id} is invalid (not uuid)`);
     }
 
-    const user = this.userService.findOne(id);
+    const user = await this.userService.findOne(id);
 
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    return this.userService.delete(id);
+    return await this.userService.delete(id);
   }
 }

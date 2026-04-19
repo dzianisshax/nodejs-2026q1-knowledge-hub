@@ -1,19 +1,16 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ArticleController } from './article.controller';
 import { ArticleService } from './article.service';
-import { InMemoryArticleRepository } from './repositories/article.in-memory.repository';
+import { PrismaArticleRepository } from './repositories/article.prisma.repository';
 import { ARTICLE_REPOSITORY } from './repositories/article.repository.interface';
 import { CommentModule } from '../comment/comment.module';
 
 @Module({
-  imports: [forwardRef(() => CommentModule)], // forwardRef breaks the circular dep
+  imports: [forwardRef(() => CommentModule)],
   controllers: [ArticleController],
   providers: [
     ArticleService,
-    {
-      provide: ARTICLE_REPOSITORY,
-      useClass: InMemoryArticleRepository,
-    },
+    { provide: ARTICLE_REPOSITORY, useClass: PrismaArticleRepository },
   ],
   exports: [ArticleService],
 })
