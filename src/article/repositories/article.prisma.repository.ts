@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ArticleStatus as PrismaArticleStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   IArticleRepository,
@@ -20,7 +20,7 @@ export class PrismaArticleRepository implements IArticleRepository {
       id: raw.id,
       title: raw.title,
       content: raw.content,
-      status: raw.status.toLowerCase() as ArticleStatus,
+      status: raw.status as ArticleStatus,
       authorId: raw.authorId,
       categoryId: raw.categoryId,
       tags: (raw.tags ?? []).map((t: { name: string }) => t.name),
@@ -29,22 +29,12 @@ export class PrismaArticleRepository implements IArticleRepository {
     };
   }
 
-  private toDbStatus(status: ArticleStatus): PrismaArticleStatus {
-    return status.toUpperCase() as PrismaArticleStatus;
-  }
-
   async findAll(filters: ArticleFilterParams = {}): Promise<Article[]> {
     const where: Prisma.ArticleWhereInput = {};
 
-    if (filters.status) {
-      where.status = this.toDbStatus(filters.status);
-    }
-    if (filters.categoryId) {
-      where.categoryId = filters.categoryId;
-    }
-    if (filters.tag) {
-      where.tags = { some: { name: filters.tag } };
-    }
+    if (filters.status) where.status = filters.status;
+    if (filters.categoryId) where.categoryId = filters.categoryId;
+    if (filters.tag) where.tags = { some: { name: filters.tag } };
 
     const rows = await this.prisma.article.findMany({
       where,
@@ -66,7 +56,7 @@ export class PrismaArticleRepository implements IArticleRepository {
       data: {
         title: dto.title,
         content: dto.content,
-        status: dto.status ? this.toDbStatus(dto.status) : 'DRAFT',
+        status: dto.status ?? ArticleStatus.DRAFT,
         authorId: dto.authorId ?? null,
         categoryId: dto.categoryId ?? null,
         tags: {
@@ -87,9 +77,7 @@ export class PrismaArticleRepository implements IArticleRepository {
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
         ...(dto.content !== undefined && { content: dto.content }),
-        ...(dto.status !== undefined && {
-          status: this.toDbStatus(dto.status),
-        }),
+        ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.authorId !== undefined && { authorId: dto.authorId }),
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
         ...(dto.tags !== undefined && {

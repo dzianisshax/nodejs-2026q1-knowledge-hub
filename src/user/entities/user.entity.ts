@@ -7,7 +7,7 @@ export enum UserRole {
 export interface User {
   id: string; // uuid v4
   login: string;
-  password: string;
+  password: string; // bcrypt hash
   role: UserRole;
   createdAt: number; // timestamp of creation
   updatedAt: number; // timestamp of last update

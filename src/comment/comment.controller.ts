@@ -10,12 +10,19 @@ import {
   HttpStatus,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CommentQueryDto } from './dto/comment-query.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserRole } from '../user/entities/user.entity';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
 
+@BearerAuth()
 @Controller('comment')
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
@@ -48,14 +55,19 @@ export class CommentController {
   }
 
   @Post()
+  @Roles(UserRole.EDITOR, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createCommentDto: CreateCommentDto) {
-    return await this.commentService.create(createCommentDto);
+  async create(@Body() dto: CreateCommentDto, @CurrentUser() user: JwtPayload) {
+    if (user.role === UserRole.EDITOR) {
+      dto.authorId = user.userId;
+    }
+    return await this.commentService.create(dto);
   }
 
   @Delete(':id')
+  @Roles(UserRole.EDITOR, UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     if (!isUuid(id)) {
       throw new BadRequestException(`commentId ${id} is invalid (not uuid)`);
     }
@@ -64,6 +76,12 @@ export class CommentController {
 
     if (!comment) {
       throw new NotFoundException(`Comment with id ${id} not found`);
+    }
+
+    if (user.role === UserRole.EDITOR && comment.authorId !== user.userId) {
+      throw new ForbiddenException(
+        'Editors can only delete their own comments',
+      );
     }
 
     await this.commentService.delete(id);

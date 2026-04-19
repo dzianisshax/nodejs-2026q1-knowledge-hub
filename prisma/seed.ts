@@ -11,13 +11,13 @@ async function main() {
   const admin = await prisma.user.upsert({
     where: { login: 'admin' },
     update: {},
-    create: { login: 'admin', password: 'admin123', role: 'ADMIN' },
+    create: { login: 'admin', password: 'admin123', role: 'admin' } as any,
   });
 
   const editor = await prisma.user.upsert({
     where: { login: 'editor' },
     update: {},
-    create: { login: 'editor', password: 'editor123', role: 'EDITOR' },
+    create: { login: 'editor', password: 'editor123', role: 'editor' } as any,
   });
 
   const [catTech, catScience, catLifestyle] = await Promise.all([
@@ -43,7 +43,7 @@ async function main() {
     data: {
       title: 'Getting Started with NestJS',
       content: 'NestJS is a progressive Node.js framework...',
-      status: 'PUBLISHED',
+      status: 'published',
       authorId: admin.id,
       categoryId: catTech.id,
       tags: {
@@ -52,14 +52,14 @@ async function main() {
           { where: { name: 'typescript' }, create: { name: 'typescript' } },
         ],
       },
-    },
+    } as any,
   });
 
   const article2 = await prisma.article.create({
     data: {
       title: 'Prisma ORM Deep Dive',
       content: 'Prisma is a next-generation ORM...',
-      status: 'PUBLISHED',
+      status: 'published',
       authorId: editor.id,
       categoryId: catTech.id,
       tags: {
@@ -68,14 +68,14 @@ async function main() {
           { where: { name: 'postgresql' }, create: { name: 'postgresql' } },
         ],
       },
-    },
+    } as any,
   });
 
   await prisma.article.create({
     data: {
       title: 'Docker for Developers',
       content: 'Docker simplifies containerization...',
-      status: 'DRAFT',
+      status: 'draft',
       authorId: admin.id,
       categoryId: catTech.id,
       tags: {
@@ -83,26 +83,26 @@ async function main() {
           { where: { name: 'docker' }, create: { name: 'docker' } },
         ],
       },
-    },
+    } as any,
   });
 
   await prisma.article.create({
     data: {
       title: 'The Future of AI',
       content: 'Artificial intelligence is reshaping industries...',
-      status: 'PUBLISHED',
+      status: 'published',
       authorId: editor.id,
       categoryId: catScience.id,
-    },
+    } as any,
   });
 
   await prisma.article.create({
     data: {
       title: 'Healthy Living Tips',
       content: 'Maintaining a healthy lifestyle requires...',
-      status: 'ARCHIVED',
+      status: 'archived',
       categoryId: catLifestyle.id,
-    },
+    } as any,
   });
 
   await Promise.all([
