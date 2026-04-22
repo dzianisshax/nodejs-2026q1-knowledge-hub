@@ -9,7 +9,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  BadRequestException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { CategoryService } from './category.service';
@@ -19,7 +18,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../user/entities/user.entity';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
-import { NotFoundError } from '../common/errors/app-errors';
+import { NotFoundError, ValidationError } from '../common/errors/app-errors';
 
 @BearerAuth()
 @Controller('category')
@@ -40,7 +39,7 @@ export class CategoryController {
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id') id: string) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`categoryId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`categoryId ${id} is invalid (not uuid)`);
     }
 
     const category = await this.categoryService.findOne(id);
@@ -67,7 +66,7 @@ export class CategoryController {
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`categoryId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`categoryId ${id} is invalid (not uuid)`);
     }
 
     const category = await this.categoryService.findOne(id);
@@ -84,7 +83,7 @@ export class CategoryController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`categoryId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`categoryId ${id} is invalid (not uuid)`);
     }
 
     const category = await this.categoryService.findOne(id);

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UserService } from '../user/user.service';
@@ -6,7 +6,11 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { SignOptions } from 'jsonwebtoken';
-import { ForbiddenError, UnauthorizedError } from '../common/errors/app-errors';
+import {
+  ForbiddenError,
+  UnauthorizedError,
+  ValidationError,
+} from '../common/errors/app-errors';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +22,7 @@ export class AuthService {
   async signup(dto: SignupDto) {
     const existing = await this.userService.findByLogin(dto.login);
     if (existing) {
-      throw new BadRequestException(`Login "${dto.login}" is already taken`);
+      throw new ValidationError(`Login "${dto.login}" is already taken`);
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);

@@ -9,7 +9,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  BadRequestException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { UserService } from './user.service';
@@ -24,7 +23,11 @@ import { UserRole } from './entities/user.entity';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
 import * as bcrypt from 'bcryptjs';
-import { ForbiddenError, NotFoundError } from '../common/errors/app-errors';
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../common/errors/app-errors';
 
 @BearerAuth()
 @Controller('user')
@@ -46,7 +49,7 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id') id: string) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`userId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`userId ${id} is invalid (not uuid)`);
     }
 
     const user = await this.userService.findOne(id);
@@ -76,7 +79,7 @@ export class UserController {
     @CurrentUser() currentUser: JwtPayload,
   ) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`userId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`userId ${id} is invalid (not uuid)`);
     }
 
     const user = await this.userService.findOne(id);
@@ -107,7 +110,7 @@ export class UserController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`userId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`userId ${id} is invalid (not uuid)`);
     }
 
     const user = await this.userService.findOne(id);

@@ -9,7 +9,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  BadRequestException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { ArticleService } from './article.service';
@@ -21,7 +20,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../user/entities/user.entity';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
-import { ForbiddenError, NotFoundError } from '../common/errors/app-errors';
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../common/errors/app-errors';
 
 @BearerAuth()
 @Controller('article')
@@ -43,7 +46,7 @@ export class ArticleController {
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id') id: string) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`articleId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`articleId ${id} is invalid (not uuid)`);
     }
 
     const article = await this.articleService.findOne(id);
@@ -76,7 +79,7 @@ export class ArticleController {
     @CurrentUser() user: JwtPayload,
   ) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`articleId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`articleId ${id} is invalid (not uuid)`);
     }
 
     const article = await this.articleService.findOne(id);
@@ -97,7 +100,7 @@ export class ArticleController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     if (!isUuid(id)) {
-      throw new BadRequestException(`articleId ${id} is invalid (not uuid)`);
+      throw new ValidationError(`articleId ${id} is invalid (not uuid)`);
     }
 
     const article = await this.articleService.findOne(id);

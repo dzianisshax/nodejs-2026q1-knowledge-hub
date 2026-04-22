@@ -6,7 +6,6 @@ vi.mock('bcryptjs', () => ({
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from '../../auth.service';
 import { UserService } from '../../../user/user.service';
@@ -14,6 +13,7 @@ import { UserRole } from '../../../user/entities/user.entity';
 import {
   ForbiddenError,
   UnauthorizedError,
+  ValidationError,
 } from '../../../common/errors/app-errors';
 
 const mockUserService = {
@@ -74,12 +74,12 @@ describe('AuthService', () => {
       );
     });
 
-    it('should throw BadRequestException if login is already taken', async () => {
+    it('should throw ValidationError if login is already taken', async () => {
       mockUserService.findByLogin.mockResolvedValue(mockUser);
 
       await expect(
         authService.signup({ login: 'testuser', password: 'pass123' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(ValidationError);
     });
 
     it('should hash the password before storing', async () => {
