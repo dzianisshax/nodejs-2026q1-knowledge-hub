@@ -10,7 +10,6 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { CategoryService } from './category.service';
@@ -20,6 +19,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../user/entities/user.entity';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
+import { NotFoundError } from '../common/errors/app-errors';
 
 @BearerAuth()
 @Controller('category')
@@ -46,7 +46,7 @@ export class CategoryController {
     const category = await this.categoryService.findOne(id);
 
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundError(`Category with id ${id} not found`);
     }
 
     return category;
@@ -73,7 +73,7 @@ export class CategoryController {
     const category = await this.categoryService.findOne(id);
 
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundError(`Category with id ${id} not found`);
     }
 
     return await this.categoryService.update(id, updateCategoryDto);
@@ -90,7 +90,7 @@ export class CategoryController {
     const category = await this.categoryService.findOne(id);
 
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundError(`Category with id ${id} not found`);
     }
 
     await this.categoryService.delete(id);

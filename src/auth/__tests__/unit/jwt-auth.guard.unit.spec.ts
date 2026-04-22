@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { UnauthorizedError } from '../../../common/errors/app-errors';
 
 const makeContext = (isPublic = false, hasUser = true): ExecutionContext =>
   ({
@@ -34,21 +35,19 @@ describe('JwtAuthGuard', () => {
     expect(guard.handleRequest(null, user)).toEqual(user);
   });
 
-  it('handleRequest throws UnauthorizedException when no user', () => {
-    expect(() => guard.handleRequest(null, null)).toThrow(
-      UnauthorizedException,
-    );
+  it('handleRequest throws UnauthorizedError when no user', () => {
+    expect(() => guard.handleRequest(null, null)).toThrow(UnauthorizedError);
   });
 
-  it('handleRequest throws UnauthorizedException when error present', () => {
+  it('handleRequest throws UnauthorizedError when error present', () => {
     expect(() => guard.handleRequest(new Error('jwt expired'), null)).toThrow(
-      UnauthorizedException,
+      UnauthorizedError,
     );
   });
 
-  it('handleRequest throws UnauthorizedException for malformed token', () => {
+  it('handleRequest throws UnauthorizedError for malformed token', () => {
     expect(() =>
       guard.handleRequest(new Error('invalid signature'), null),
-    ).toThrow(UnauthorizedException);
+    ).toThrow(UnauthorizedError);
   });
 });

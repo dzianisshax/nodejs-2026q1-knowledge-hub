@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  ForbiddenException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UserService } from '../user/user.service';
@@ -11,6 +6,7 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { SignOptions } from 'jsonwebtoken';
+import { ForbiddenError, UnauthorizedError } from '../common/errors/app-errors';
 
 @Injectable()
 export class AuthService {
@@ -34,12 +30,12 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.userService.findByLogin(dto.login);
     if (!user) {
-      throw new ForbiddenException('Invalid login or password');
+      throw new ForbiddenError('Invalid login or password');
     }
 
     const passwordMatch = await bcrypt.compare(dto.password, user.password);
     if (!passwordMatch) {
-      throw new ForbiddenException('Invalid login or password');
+      throw new ForbiddenError('Invalid login or password');
     }
 
     return this.generateTokens({
@@ -51,7 +47,7 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token is required');
+      throw new UnauthorizedError('Refresh token is required');
     }
 
     let payload: JwtPayload;
@@ -60,7 +56,7 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch {
-      throw new ForbiddenException('Refresh token is invalid or expired');
+      throw new ForbiddenError('Refresh token is invalid or expired');
     }
 
     return this.generateTokens({

@@ -10,8 +10,6 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-  NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { ArticleService } from './article.service';
@@ -23,6 +21,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../user/entities/user.entity';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
+import { ForbiddenError, NotFoundError } from '../common/errors/app-errors';
 
 @BearerAuth()
 @Controller('article')
@@ -50,7 +49,7 @@ export class ArticleController {
     const article = await this.articleService.findOne(id);
 
     if (!article) {
-      throw new NotFoundException(`Article with id ${id} not found`);
+      throw new NotFoundError(`Article with id ${id} not found`);
     }
 
     return article;
@@ -83,13 +82,11 @@ export class ArticleController {
     const article = await this.articleService.findOne(id);
 
     if (!article) {
-      throw new NotFoundException(`Article with id ${id} not found`);
+      throw new NotFoundError(`Article with id ${id} not found`);
     }
 
     if (user.role === UserRole.EDITOR && article.authorId !== user.userId) {
-      throw new ForbiddenException(
-        'Editors can only update their own articles',
-      );
+      throw new ForbiddenError('Editors can only update their own articles');
     }
 
     return await this.articleService.update(id, dto);
@@ -106,7 +103,7 @@ export class ArticleController {
     const article = await this.articleService.findOne(id);
 
     if (!article) {
-      throw new NotFoundException(`Article with id ${id} not found`);
+      throw new NotFoundError(`Article with id ${id} not found`);
     }
 
     await this.articleService.delete(id);

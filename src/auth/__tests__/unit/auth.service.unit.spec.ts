@@ -6,15 +6,15 @@ vi.mock('bcryptjs', () => ({
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import {
-  BadRequestException,
-  ForbiddenException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from '../../auth.service';
 import { UserService } from '../../../user/user.service';
 import { UserRole } from '../../../user/entities/user.entity';
+import {
+  ForbiddenError,
+  UnauthorizedError,
+} from '../../../common/errors/app-errors';
 
 const mockUserService = {
   findByLogin: vi.fn(),
@@ -130,21 +130,21 @@ describe('AuthService', () => {
       });
     });
 
-    it('should throw ForbiddenException if user not found', async () => {
+    it('should throw ForbiddenError if user not found', async () => {
       mockUserService.findByLogin.mockResolvedValue(null);
 
       await expect(
         authService.login({ login: 'nouser', password: 'pass' }),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(ForbiddenError);
     });
 
-    it('should throw ForbiddenException if password does not match', async () => {
+    it('should throw ForbiddenError if password does not match', async () => {
       mockUserService.findByLogin.mockResolvedValue(mockUser);
       vi.spyOn(bcrypt, 'compare').mockResolvedValue(false as never);
 
       await expect(
         authService.login({ login: 'testuser', password: 'wrongpass' }),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(ForbiddenError);
     });
   });
 
@@ -167,29 +167,27 @@ describe('AuthService', () => {
       });
     });
 
-    it('should throw UnauthorizedException if refreshToken is empty', async () => {
-      await expect(authService.refresh('')).rejects.toThrow(
-        UnauthorizedException,
-      );
+    it('should throw UnauthorizedError if refreshToken is empty', async () => {
+      await expect(authService.refresh('')).rejects.toThrow(UnauthorizedError);
     });
 
-    it('should throw ForbiddenException if refresh token is invalid', async () => {
+    it('should throw ForbiddenError if refresh token is invalid', async () => {
       mockJwtService.verify.mockImplementation(() => {
         throw new Error('invalid');
       });
 
       await expect(authService.refresh('bad_token')).rejects.toThrow(
-        ForbiddenException,
+        ForbiddenError,
       );
     });
 
-    it('should throw ForbiddenException if refresh token is expired', async () => {
+    it('should throw ForbiddenError if refresh token is expired', async () => {
       mockJwtService.verify.mockImplementation(() => {
         throw new Error('jwt expired');
       });
 
       await expect(authService.refresh('expired_token')).rejects.toThrow(
-        ForbiddenException,
+        ForbiddenError,
       );
     });
   });

@@ -9,8 +9,6 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-  NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { CommentService } from './comment.service';
@@ -21,6 +19,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../user/entities/user.entity';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
+import { ForbiddenError, NotFoundError } from '../common/errors/app-errors';
 
 @BearerAuth()
 @Controller('comment')
@@ -48,7 +47,7 @@ export class CommentController {
     const comment = await this.commentService.findOne(id);
 
     if (!comment) {
-      throw new NotFoundException(`Comment with id ${id} not found`);
+      throw new NotFoundError(`Comment with id ${id} not found`);
     }
 
     return comment;
@@ -75,13 +74,11 @@ export class CommentController {
     const comment = await this.commentService.findOne(id);
 
     if (!comment) {
-      throw new NotFoundException(`Comment with id ${id} not found`);
+      throw new NotFoundError(`Comment with id ${id} not found`);
     }
 
     if (user.role === UserRole.EDITOR && comment.authorId !== user.userId) {
-      throw new ForbiddenException(
-        'Editors can only delete their own comments',
-      );
+      throw new ForbiddenError('Editors can only delete their own comments');
     }
 
     await this.commentService.delete(id);

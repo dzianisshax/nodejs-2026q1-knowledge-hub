@@ -9,9 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { validate as isUuid } from 'uuid';
 import { UserService } from './user.service';
@@ -26,6 +24,7 @@ import { UserRole } from './entities/user.entity';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
 import * as bcrypt from 'bcryptjs';
+import { ForbiddenError, NotFoundError } from '../common/errors/app-errors';
 
 @BearerAuth()
 @Controller('user')
@@ -53,7 +52,7 @@ export class UserController {
     const user = await this.userService.findOne(id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundError(`User with id ${id} not found`);
     }
 
     return UserResponseDto.fromEntity(user);
@@ -83,12 +82,12 @@ export class UserController {
     const user = await this.userService.findOne(id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundError(`User with id ${id} not found`);
     }
 
     // Only the user themselves or an admin can change the password
     if (currentUser.userId !== id && currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('You can only change your own password');
+      throw new ForbiddenError('You can only change your own password');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -96,7 +95,7 @@ export class UserController {
       user.password,
     );
     if (!isPasswordValid) {
-      throw new ForbiddenException('Old password is incorrect');
+      throw new ForbiddenError('Old password is incorrect');
     }
 
     const updatedUser = await this.userService.update(id, updatePasswordDto);
@@ -114,7 +113,7 @@ export class UserController {
     const user = await this.userService.findOne(id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundError(`User with id ${id} not found`);
     }
 
     return await this.userService.delete(id);

@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../user/entities/user.entity';
+import { ForbiddenError } from '../../common/errors/app-errors';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -29,18 +25,18 @@ export class RolesGuard implements CanActivate {
     // Viewer — GET only
     if (role === UserRole.VIEWER) {
       if (method === 'GET') return true;
-      throw new ForbiddenException('Viewers have read-only access');
+      throw new ForbiddenError('Viewers have read-only access');
     }
 
     // Editor — GET + POST/PUT on own content
     if (role === UserRole.EDITOR) {
       if (method === 'GET') return true;
       if (method === 'POST' || method === 'PUT') return true;
-      throw new ForbiddenException(
+      throw new ForbiddenError(
         'Editors cannot delete resources or manage categories',
       );
     }
 
-    throw new ForbiddenException('Insufficient permissions');
+    throw new ForbiddenError('Insufficient permissions');
   }
 }
