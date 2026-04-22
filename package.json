@@ -17,7 +17,9 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
-    "test": "jest --testMatch \"<rootDir>/*.spec.ts\" --noStackTrace --runInBand",
+    "test": "cross-env TEST_MODE=auth jest --testMatch \"<rootDir>/*.spec.ts\" --noStackTrace --runInBand && vitest run --config vitest.config.ts",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:coverage": "vitest run --coverage",
     "test:auth": "cross-env TEST_MODE=auth jest --testPathIgnorePatterns \"refresh|rbac\" --noStackTrace --runInBand",
     "test:refresh": "cross-env TEST_MODE=auth jest --testPathPattern refresh.e2e.spec.ts --noStackTrace --runInBand",
     "test:rbac": "cross-env TEST_MODE=auth jest --testPathPattern rbac --noStackTrace --runInBand",
@@ -67,6 +69,7 @@
     "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
+    "@vitest/coverage-v8": "^4.1.4",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -80,7 +83,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.4"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
