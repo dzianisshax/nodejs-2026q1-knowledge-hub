@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard } from '../../guards/roles.guard';
 import { UserRole } from '../../../user/entities/user.entity';
+import { ForbiddenError } from '../../../common/errors/app-errors';
 
 const makeContext = (role: UserRole, method = 'GET'): ExecutionContext =>
   ({
@@ -40,18 +41,18 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(makeContext(UserRole.VIEWER, 'GET'))).toBe(true);
   });
 
-  it('throws ForbiddenException for viewer POST', () => {
+  it('throws ForbiddenError for viewer POST', () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.VIEWER]);
     expect(() =>
       guard.canActivate(makeContext(UserRole.VIEWER, 'POST')),
-    ).toThrow(ForbiddenException);
+    ).toThrow(ForbiddenError);
   });
 
-  it('throws ForbiddenException for viewer DELETE', () => {
+  it('throws ForbiddenError for viewer DELETE', () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.ADMIN]);
     expect(() =>
       guard.canActivate(makeContext(UserRole.VIEWER, 'DELETE')),
-    ).toThrow(ForbiddenException);
+    ).toThrow(ForbiddenError);
   });
 
   it('allows editor GET requests', () => {
@@ -69,10 +70,10 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(makeContext(UserRole.EDITOR, 'PUT'))).toBe(true);
   });
 
-  it('throws ForbiddenException for editor DELETE', () => {
+  it('throws ForbiddenError for editor DELETE', () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.ADMIN]);
     expect(() =>
       guard.canActivate(makeContext(UserRole.EDITOR, 'DELETE')),
-    ).toThrow(ForbiddenException);
+    ).toThrow(ForbiddenError);
   });
 });
