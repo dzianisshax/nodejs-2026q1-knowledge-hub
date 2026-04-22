@@ -25,6 +25,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from './entities/user.entity';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BearerAuth } from '../auth/decorators/bearer-auth.decorator';
+import * as bcrypt from 'bcryptjs';
 
 @BearerAuth()
 @Controller('user')
@@ -90,7 +91,11 @@ export class UserController {
       throw new ForbiddenException('You can only change your own password');
     }
 
-    if (user.password !== updatePasswordDto.oldPassword) {
+    const isPasswordValid = await bcrypt.compare(
+      updatePasswordDto.oldPassword,
+      user.password,
+    );
+    if (!isPasswordValid) {
       throw new ForbiddenException('Old password is incorrect');
     }
 
