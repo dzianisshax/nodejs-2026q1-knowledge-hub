@@ -8,7 +8,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { validate as isUuid } from 'uuid';
 import { BadRequestException } from '@nestjs/common';
 import { AiService } from './ai.service';
