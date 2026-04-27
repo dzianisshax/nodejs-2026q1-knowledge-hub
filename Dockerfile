@@ -30,7 +30,12 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 # Note: Since we are using @prisma/client, we generate it again for the prod node_modules
 RUN npx prisma generate
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create logs directory and non-root user, then assign ownership
+RUN addgroup -S appgroup && \
+    adduser -S appuser -G appgroup && \
+    mkdir -p /app/logs && \
+    chown -R appuser:appgroup /app/logs
+
 USER appuser
 
 EXPOSE ${PORT:-4000}
