@@ -14,6 +14,11 @@ import { SummarizeArticleDto } from './dto/summarize-article.dto';
 import { TranslateArticleDto } from './dto/translate-article.dto';
 import { AnalyzeArticleDto } from './dto/analyze-article.dto';
 import { GenerateDto } from './dto/generate.dto';
+import { validateShape } from './validation/ai-response.validator';
+import {
+  TRANSLATE_SCHEMA,
+  ANALYZE_SCHEMA,
+} from './validation/ai-response.schemas';
 
 @Injectable()
 export class AiService {
@@ -53,11 +58,12 @@ export class AiService {
     const { text, tokens, latencyMs } = await this.gemini.generate(prompt);
     this.usage.track('summarize', tokens, latencyMs);
 
+    const summary = text.trim();
     const result = {
       articleId,
-      summary: text.trim(),
+      summary,
       originalLength: article.content.length,
-      summaryLength: text.trim().length,
+      summaryLength: summary.length,
     };
 
     this.cache.set(cacheKey, result);
@@ -97,12 +103,12 @@ export class AiService {
       detectedLanguage: string;
     }>(text);
 
-    const result = {
-      articleId,
-      translatedText: parsed?.translatedText ?? text.trim(),
-      detectedLanguage: parsed?.detectedLanguage ?? 'unknown',
-    };
+    const validated = validateShape(parsed, TRANSLATE_SCHEMA, {
+      translatedText: text.trim(),
+      detectedLanguage: 'unknown',
+    });
 
+    const result = { articleId, ...validated };
     this.cache.set(cacheKey, result);
     return result;
   }
@@ -121,12 +127,13 @@ export class AiService {
       severity: 'info' | 'warning' | 'error';
     }>(text);
 
-    return {
-      articleId,
-      analysis: parsed?.analysis ?? text.trim(),
-      suggestions: parsed?.suggestions ?? [],
-      severity: parsed?.severity ?? 'info',
-    };
+    const validated = validateShape(parsed, ANALYZE_SCHEMA, {
+      analysis: text.trim(),
+      suggestions: [],
+      severity: 'info' as const,
+    });
+
+    return { articleId, ...validated };
   }
 
   async generate(dto: GenerateDto) {
