@@ -50,12 +50,21 @@ export class AiService {
     });
     const cached = this.cache.get<object>(cacheKey);
     if (cached) {
-      this.usage.track('summarize');
+      this.usage.track('summarize'); // cache hit — no latency, no tokens
       return cached;
     }
 
     const prompt = PROMPTS.summarize(article.content, maxLength);
-    const { text, tokens, latencyMs } = await this.gemini.generate(prompt);
+
+    let geminiResult: { text: string; tokens: number; latencyMs: number };
+    try {
+      geminiResult = await this.gemini.generate(prompt);
+    } catch (err) {
+      this.usage.track('summarize', 0, 0, true); // isError = true
+      throw err;
+    }
+
+    const { text, tokens, latencyMs } = geminiResult;
     this.usage.track('summarize', tokens, latencyMs);
 
     const summary = text.trim();
@@ -71,9 +80,8 @@ export class AiService {
   }
 
   async translate(articleId: string, dto: TranslateArticleDto) {
-    if (!dto.targetLanguage) {
+    if (!dto.targetLanguage)
       throw new BadRequestException('targetLanguage is required');
-    }
 
     const article = await this.getArticleOrThrow(articleId);
 
@@ -95,14 +103,22 @@ export class AiService {
       dto.targetLanguage,
       dto.sourceLanguage,
     );
-    const { text, tokens, latencyMs } = await this.gemini.generate(prompt);
+
+    let geminiResult: { text: string; tokens: number; latencyMs: number };
+    try {
+      geminiResult = await this.gemini.generate(prompt);
+    } catch (err) {
+      this.usage.track('translate', 0, 0, true);
+      throw err;
+    }
+
+    const { text, tokens, latencyMs } = geminiResult;
     this.usage.track('translate', tokens, latencyMs);
 
     const parsed = this.gemini.parseJson<{
       translatedText: string;
       detectedLanguage: string;
     }>(text);
-
     const validated = validateShape(parsed, TRANSLATE_SCHEMA, {
       translatedText: text.trim(),
       detectedLanguage: 'unknown',
@@ -118,7 +134,16 @@ export class AiService {
     const task = dto.task ?? 'review';
 
     const prompt = PROMPTS.analyze(article.content, task);
-    const { text, tokens, latencyMs } = await this.gemini.generate(prompt);
+
+    let geminiResult: { text: string; tokens: number; latencyMs: number };
+    try {
+      geminiResult = await this.gemini.generate(prompt);
+    } catch (err) {
+      this.usage.track('analyze', 0, 0, true);
+      throw err;
+    }
+
+    const { text, tokens, latencyMs } = geminiResult;
     this.usage.track('analyze', tokens, latencyMs);
 
     const parsed = this.gemini.parseJson<{
@@ -139,9 +164,17 @@ export class AiService {
   async generate(dto: GenerateDto) {
     const sessionId = dto.sessionId;
     const history = sessionId ? this.sessions.getHistory(sessionId) : [];
-
     const prompt = PROMPTS.generate(dto.prompt, history);
-    const { text, tokens, latencyMs } = await this.gemini.generate(prompt);
+
+    let geminiResult: { text: string; tokens: number; latencyMs: number };
+    try {
+      geminiResult = await this.gemini.generate(prompt);
+    } catch (err) {
+      this.usage.track('generate', 0, 0, true);
+      throw err;
+    }
+
+    const { text, tokens, latencyMs } = geminiResult;
     this.usage.track('generate', tokens, latencyMs);
 
     if (sessionId) {
