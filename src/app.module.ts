@@ -8,6 +8,7 @@ import { UserModule } from './user/user.module';
 import { ArticleModule } from './article/article.module';
 import { CategoryModule } from './category/category.module';
 import { CommentModule } from './comment/comment.module';
+import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -23,6 +24,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     ArticleModule,
     CategoryModule,
     CommentModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [
