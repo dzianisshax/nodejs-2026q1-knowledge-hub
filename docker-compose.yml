@@ -7,7 +7,6 @@ services:
       - '${PORT:-4000}:${PORT:-4000}'
     env_file:
       - .env
-    command: sh -c "node node_modules/prisma/build/index.js migrate deploy && node dist/main.js"
     depends_on:
       db:
         condition: service_healthy

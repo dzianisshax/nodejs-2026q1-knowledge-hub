@@ -21,7 +21,7 @@ export class EmbeddingService {
   }
 
   private get model(): string {
-    return process.env.GEMINI_EMBEDDING_MODEL ?? 'text-embedding-004';
+    return process.env.GEMINI_EMBEDDING_MODEL ?? 'gemini-embedding-2';
   }
 
   private get apiKey(): string {
@@ -39,6 +39,7 @@ export class EmbeddingService {
         body: JSON.stringify({
           model: `models/${this.model}`,
           content: { parts: [{ text }] },
+          outputDimensionality: 768,
         }),
         signal: AbortSignal.timeout(30_000),
       });
@@ -55,7 +56,9 @@ export class EmbeddingService {
     }
 
     if (!response.ok) {
-      this.logger.error(`Embedding API error: ${response.status}`);
+      const errorText = await response.text();
+      this.logger.error(`Embedding API error: (${response.status}) ${errorText}`);
+
       throw new ServiceUnavailableException(
         'Embedding service temporarily unavailable',
       );
