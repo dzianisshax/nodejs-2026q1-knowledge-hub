@@ -7,8 +7,11 @@ services:
       - '${PORT:-4000}:${PORT:-4000}'
     env_file:
       - .env
+    command: sh -c "node node_modules/prisma/build/index.js migrate deploy && node dist/main.js"
     depends_on:
       db:
+        condition: service_healthy
+      vectordb:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:${PORT:-4000}/ || exit 1']
@@ -40,6 +43,22 @@ services:
     networks:
       - app-network
 
+  vectordb:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - app-network
+
   adminer:
     image: adminer
     profiles:
@@ -59,3 +78,4 @@ networks:
 
 volumes:
   postgres-data:
+  qdrant-data:
