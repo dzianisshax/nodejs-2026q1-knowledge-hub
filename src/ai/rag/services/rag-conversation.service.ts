@@ -13,7 +13,11 @@ export class RagConversationService {
     return parseInt(process.env.RAG_CONVERSATION_MAX_MESSAGES ?? '20', 10);
   }
 
-  append(conversationId: string, role: 'user' | 'assistant', text: string): void {
+  append(
+    conversationId: string,
+    role: 'user' | 'assistant',
+    text: string,
+  ): void {
     const history = this.conversations.get(conversationId) ?? [];
     history.push({ role, text });
     if (history.length > this.maxMessages) history.shift();

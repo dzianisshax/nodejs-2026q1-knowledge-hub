@@ -11,6 +11,12 @@ import { AiModule } from '../ai.module';
 @Module({
   imports: [ArticleModule, AiModule],
   controllers: [RagController],
-  providers: [RagService, QdrantService, EmbeddingService, ChunkerService, RagConversationService],
+  providers: [
+    RagService,
+    QdrantService,
+    EmbeddingService,
+    ChunkerService,
+    RagConversationService,
+  ],
 })
 export class RagModule {}

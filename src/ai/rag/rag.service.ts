@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { QdrantService } from './services/qdrant.service';
 import { EmbeddingService } from './services/embedding.service';
@@ -11,6 +16,10 @@ import { ReindexDto } from './dto/reindex.dto';
 import { RagSearchDto } from './dto/rag-search.dto';
 import { RagChatDto } from './dto/rag-chat.dto';
 import { ArticleStatus } from '../../article/entities/article.entity';
+import { Article } from '../../article/entities/article.entity';
+
+// Large enough to fetch all articles in one call — RAG indexes everything
+const RAG_PAGE_SIZE = 1000;
 
 @Injectable()
 export class RagService {
@@ -25,30 +34,39 @@ export class RagService {
     private readonly articleService: ArticleService,
   ) {}
 
+  private async fetchArticles(dto: ReindexDto): Promise<Article[]> {
+    const filters =
+      dto.onlyPublished !== false ? { status: ArticleStatus.PUBLISHED } : {};
+
+    const paginated = await this.articleService.findAll(
+      filters,
+      1,
+      RAG_PAGE_SIZE,
+    );
+    let articles = paginated.data;
+
+    if (dto.articleIds?.length) {
+      const idSet = new Set(dto.articleIds);
+      articles = articles.filter((a) => idSet.has(a.id));
+    }
+
+    return articles;
+  }
+
   async reindex(dto: ReindexDto) {
     await this.qdrant.ensureCollection();
 
-    const filters: { status?: ArticleStatus } = {};
-    if (dto.onlyPublished !== false) {
-      filters.status = ArticleStatus.PUBLISHED;
-    }
-
-    let articles = await this.articleService.findAll(filters);
-
-    if (dto.articleIds?.length) {
-      articles = articles.filter((a) => dto.articleIds!.includes(a.id));
-    }
-
+    const articles = await this.fetchArticles(dto);
     let totalChunks = 0;
 
     for (const article of articles) {
-      // Remove existing vectors for this article before re-indexing
       await this.qdrant.deleteByArticleId(article.id);
 
       const fullText = `${article.title}\n\n${article.content}`;
       const chunks = this.chunker.chunk(fullText);
-
-      const vectors = await this.embedding.embedBatch(chunks.map((c) => c.text));
+      const vectors = await this.embedding.embedBatch(
+        chunks.map((c) => c.text),
+      );
 
       const points = chunks.map((chunk, i) => ({
         id: uuidv4(),
@@ -66,13 +84,17 @@ export class RagService {
 
       await this.qdrant.upsertVectors(points);
       totalChunks += chunks.length;
-      this.logger.log(`Indexed article "${article.title}" — ${chunks.length} chunks`);
+
+      this.logger.log(
+        `Indexed article "${article.title}" (${article.id}) — ${chunks.length} chunk(s)`,
+      );
     }
 
     return {
       indexedArticles: articles.length,
       indexedChunks: totalChunks,
-      vectorCollection: process.env.RAG_VECTOR_COLLECTION ?? 'knowledge_hub_articles',
+      vectorCollection:
+        process.env.RAG_VECTOR_COLLECTION ?? 'knowledge_hub_articles',
     };
   }
 
@@ -96,19 +118,15 @@ export class RagService {
     const conversationId = dto.conversationId ?? uuidv4();
     const history = this.conversation.getHistory(conversationId);
 
-    // Embed question and retrieve relevant chunks
     const queryVector = await this.embedding.embed(dto.question);
     const hits = await this.qdrant.search(queryVector, 5);
 
     if (hits.length === 0) {
-      const answer = "I don't have enough information in the knowledge base to answer that.";
+      const answer =
+        "I don't have enough information in the knowledge base to answer that.";
       this.conversation.append(conversationId, 'user', dto.question);
       this.conversation.append(conversationId, 'assistant', answer);
-      return {
-        answer,
-        sources: [],
-        conversationId,
-      };
+      return { answer, sources: [], conversationId };
     }
 
     const prompt = RAG_PROMPTS.chat(dto.question, hits, history);
@@ -118,7 +136,9 @@ export class RagService {
       geminiResult = await this.gemini.generate(prompt);
     } catch (err) {
       this.logger.error(`Gemini chat error: ${String(err)}`);
-      throw new ServiceUnavailableException('AI service temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'AI service temporarily unavailable',
+      );
     }
 
     const answer = geminiResult.text.trim();
@@ -140,7 +160,9 @@ export class RagService {
   async deleteArticleFromIndex(articleId: string): Promise<void> {
     const deleted = await this.qdrant.deleteByArticleId(articleId);
     if (deleted === 0) {
-      throw new NotFoundException(`No index entries found for article ${articleId}`);
+      throw new NotFoundException(
+        `No index entries found for article ${articleId}`,
+      );
     }
   }
 

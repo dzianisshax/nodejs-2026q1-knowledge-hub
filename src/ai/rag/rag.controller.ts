@@ -1,6 +1,14 @@
 import {
-  Controller, Post, Delete, Get, Body, Param, HttpCode, HttpStatus,
-  UseGuards, BadRequestException,
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Body,
+  Param,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { validate as isUuid } from 'uuid';
@@ -40,7 +48,9 @@ export class RagController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFromIndex(@Param('articleId') articleId: string) {
     if (!isUuid(articleId)) {
-      throw new BadRequestException(`articleId ${articleId} is invalid (not uuid)`);
+      throw new BadRequestException(
+        `articleId ${articleId} is invalid (not uuid)`,
+      );
     }
     await this.ragService.deleteArticleFromIndex(articleId);
   }

@@ -1,4 +1,8 @@
-import { Injectable, Logger, ServiceUnavailableException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { QdrantClient } from '@qdrant/js-client-rest';
 
 export interface VectorMetadata {
@@ -37,7 +41,9 @@ export class QdrantService {
   async ensureCollection(): Promise<void> {
     try {
       const collections = await this.client.getCollections();
-      const exists = collections.collections.some((c) => c.name === this.collection);
+      const exists = collections.collections.some(
+        (c) => c.name === this.collection,
+      );
 
       if (!exists) {
         await this.client.createCollection(this.collection, {
@@ -60,7 +66,7 @@ export class QdrantService {
         points: points.map((p) => ({
           id: p.id,
           vector: p.vector,
-          payload: p.payload as Record<string, unknown>,
+          payload: p.payload as unknown as Record<string, unknown>,
         })),
       });
     } catch (err) {
@@ -121,12 +127,15 @@ export class QdrantService {
         ...(must.length > 0 ? { filter: { must } } : {}),
       });
 
-      return results.map((r) => ({
-        articleId: (r.payload as VectorMetadata).articleId,
-        articleTitle: (r.payload as VectorMetadata).articleTitle,
-        chunk: (r.payload as VectorMetadata).chunkText,
-        similarity: r.score,
-      }));
+      return results.map((r) => {
+        const payload = r.payload as unknown as VectorMetadata;
+        return {
+          articleId: payload.articleId,
+          articleTitle: payload.articleTitle,
+          chunk: payload.chunkText,
+          similarity: r.score,
+        };
+      });
     } catch (err) {
       this.logger.error(`Qdrant search error: ${String(err)}`);
       throw new ServiceUnavailableException('Vector DB is unavailable');

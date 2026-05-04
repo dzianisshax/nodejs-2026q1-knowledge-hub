@@ -14,7 +14,10 @@ export class EmbeddingService {
   private readonly logger = new Logger(EmbeddingService.name);
 
   private get baseUrl(): string {
-    return process.env.GEMINI_API_BASE_URL ?? 'https://generativelanguage.googleapis.com';
+    return (
+      process.env.GEMINI_API_BASE_URL ??
+      'https://generativelanguage.googleapis.com'
+    );
   }
 
   private get model(): string {
@@ -41,7 +44,9 @@ export class EmbeddingService {
       });
     } catch (err) {
       this.logger.error(`Embedding network error: ${String(err)}`);
-      throw new ServiceUnavailableException('Embedding service temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'Embedding service temporarily unavailable',
+      );
     }
 
     if (response.status === 401 || response.status === 403) {
@@ -51,7 +56,9 @@ export class EmbeddingService {
 
     if (!response.ok) {
       this.logger.error(`Embedding API error: ${response.status}`);
-      throw new ServiceUnavailableException('Embedding service temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'Embedding service temporarily unavailable',
+      );
     }
 
     const data = (await response.json()) as EmbedResponse;
