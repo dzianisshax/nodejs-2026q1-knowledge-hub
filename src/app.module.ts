@@ -11,6 +11,7 @@ import { CommentModule } from './comment/comment.module';
 import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { RagModule } from './ai/rag/rag.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     CategoryModule,
     CommentModule,
     AiModule,
+    RagModule,
   ],
   controllers: [HealthController],
   providers: [
