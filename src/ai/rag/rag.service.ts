@@ -15,10 +15,8 @@ import { RAG_PROMPTS } from './prompts/rag.prompts';
 import { ReindexDto } from './dto/reindex.dto';
 import { RagSearchDto } from './dto/rag-search.dto';
 import { RagChatDto } from './dto/rag-chat.dto';
-import { ArticleStatus } from '../../article/entities/article.entity';
-import { Article } from '../../article/entities/article.entity';
+import { ArticleStatus, Article } from '../../article/entities/article.entity';
 
-// Large enough to fetch all articles in one call — RAG indexes everything
 const RAG_PAGE_SIZE = 1000;
 
 @Injectable()
@@ -53,6 +51,45 @@ export class RagService {
     return articles;
   }
 
+  private async indexArticle(article: Article): Promise<number> {
+    // Always delete existing vectors first — prevents stale chunks after content edits
+    await this.qdrant.deleteByArticleId(article.id);
+
+    const fullText = `${article.title}\n\n${article.content}`;
+    const chunks = this.chunker.chunk(fullText);
+
+    if (chunks.length === 0) {
+      this.logger.warn(
+        `Article "${article.title}" produced 0 chunks — skipping`,
+      );
+      return 0;
+    }
+
+    const vectors = await this.embedding.embedBatch(chunks.map((c) => c.text));
+
+    const points = chunks.map((chunk, i) => ({
+      id: uuidv4(),
+      vector: vectors[i],
+      payload: {
+        articleId: article.id,
+        articleTitle: article.title,
+        chunkIndex: chunk.index,
+        chunkText: chunk.text,
+        status: article.status,
+        categoryId: article.categoryId ?? null,
+        tags: article.tags ?? [],
+      },
+    }));
+
+    await this.qdrant.upsertVectors(points);
+
+    this.logger.log(
+      `Indexed article "${article.title}" (${article.id}) — ${chunks.length} chunk(s)`,
+    );
+
+    return chunks.length;
+  }
+
   async reindex(dto: ReindexDto) {
     await this.qdrant.ensureCollection();
 
@@ -60,35 +97,19 @@ export class RagService {
     let totalChunks = 0;
 
     for (const article of articles) {
-      await this.qdrant.deleteByArticleId(article.id);
-
-      const fullText = `${article.title}\n\n${article.content}`;
-      const chunks = this.chunker.chunk(fullText);
-      const vectors = await this.embedding.embedBatch(
-        chunks.map((c) => c.text),
-      );
-
-      const points = chunks.map((chunk, i) => ({
-        id: uuidv4(),
-        vector: vectors[i],
-        payload: {
-          articleId: article.id,
-          articleTitle: article.title,
-          chunkIndex: chunk.index,
-          chunkText: chunk.text,
-          status: article.status,
-          categoryId: article.categoryId ?? null,
-          tags: article.tags ?? [],
-        },
-      }));
-
-      await this.qdrant.upsertVectors(points);
-      totalChunks += chunks.length;
-
-      this.logger.log(
-        `Indexed article "${article.title}" (${article.id}) — ${chunks.length} chunk(s)`,
-      );
+      try {
+        totalChunks += await this.indexArticle(article);
+      } catch (err) {
+        // Log and continue — one failing article should not abort full reindex
+        this.logger.error(
+          `Failed to index article ${article.id}: ${String(err)}`,
+        );
+      }
     }
+
+    this.logger.log(
+      `Reindex complete: ${articles.length} articles, ${totalChunks} chunks`,
+    );
 
     return {
       indexedArticles: articles.length,
@@ -101,7 +122,15 @@ export class RagService {
   async search(dto: RagSearchDto) {
     await this.qdrant.ensureCollection();
 
-    const queryVector = await this.embedding.embed(dto.query);
+    let queryVector: number[];
+    try {
+      queryVector = await this.embedding.embed(dto.query);
+    } catch (err) {
+      this.logger.error(`Embedding failed for search query: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        'Embedding service temporarily unavailable',
+      );
+    }
 
     const results = await this.qdrant.search(queryVector, dto.limit ?? 5, {
       articleStatus: dto.articleStatus,
@@ -118,7 +147,16 @@ export class RagService {
     const conversationId = dto.conversationId ?? uuidv4();
     const history = this.conversation.getHistory(conversationId);
 
-    const queryVector = await this.embedding.embed(dto.question);
+    let queryVector: number[];
+    try {
+      queryVector = await this.embedding.embed(dto.question);
+    } catch (err) {
+      this.logger.error(`Embedding failed for chat question: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        'Embedding service temporarily unavailable',
+      );
+    }
+
     const hits = await this.qdrant.search(queryVector, 5);
 
     if (hits.length === 0) {
@@ -135,9 +173,9 @@ export class RagService {
     try {
       geminiResult = await this.gemini.generate(prompt);
     } catch (err) {
-      this.logger.error(`Gemini chat error: ${String(err)}`);
+      this.logger.error(`Gemini generation failed in RAG chat: ${String(err)}`);
       throw new ServiceUnavailableException(
-        'AI service temporarily unavailable',
+        'AI generation service temporarily unavailable',
       );
     }
 
@@ -145,6 +183,10 @@ export class RagService {
 
     this.conversation.append(conversationId, 'user', dto.question);
     this.conversation.append(conversationId, 'assistant', answer);
+
+    this.logger.log(
+      `RAG chat: conversationId=${conversationId} hits=${hits.length} latency=${geminiResult.latencyMs}ms`,
+    );
 
     return {
       answer,
@@ -161,9 +203,12 @@ export class RagService {
     const deleted = await this.qdrant.deleteByArticleId(articleId);
     if (deleted === 0) {
       throw new NotFoundException(
-        `No index entries found for article ${articleId}`,
+        `No index entries found for articleId=${articleId}`,
       );
     }
+    this.logger.log(
+      `Removed ${deleted} vector(s) for articleId=${articleId} from index`,
+    );
   }
 
   getConversationHistory(conversationId: string) {
@@ -174,5 +219,9 @@ export class RagService {
       conversationId,
       messages: this.conversation.getHistory(conversationId),
     };
+  }
+
+  getConversationStats() {
+    return this.conversation.stats();
   }
 }

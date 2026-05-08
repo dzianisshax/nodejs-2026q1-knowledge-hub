@@ -22,11 +22,15 @@ export interface SearchHit {
   similarity: number;
 }
 
+interface QdrantFilter {
+  must?: object[];
+}
+
 @Injectable()
 export class QdrantService {
   private readonly logger = new Logger(QdrantService.name);
   private readonly client: QdrantClient;
-  private readonly vectorSize = 768; // text-embedding-004 output dimension
+  private readonly vectorSize = 768;
 
   constructor() {
     this.client = new QdrantClient({
@@ -52,8 +56,10 @@ export class QdrantService {
         this.logger.log(`Created Qdrant collection: ${this.collection}`);
       }
     } catch (err) {
-      this.logger.error(`Qdrant ensureCollection error: ${String(err)}`);
-      throw new ServiceUnavailableException('Vector DB is unavailable');
+      this.logger.error(`Qdrant ensureCollection failed: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        'Vector DB is unavailable — cannot ensure collection',
+      );
     }
   }
 
@@ -70,29 +76,42 @@ export class QdrantService {
         })),
       });
     } catch (err) {
-      this.logger.error(`Qdrant upsert error: ${String(err)}`);
-      throw new ServiceUnavailableException('Vector DB is unavailable');
+      this.logger.error(`Qdrant upsert failed: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        'Vector DB is unavailable — upsert failed',
+      );
     }
   }
 
   async deleteByArticleId(articleId: string): Promise<number> {
     try {
+      // First scroll to count how many points exist for this article
       const existing = await this.client.scroll(this.collection, {
-        filter: { must: [{ key: 'articleId', match: { value: articleId } }] },
-        limit: 1,
+        filter: {
+          must: [{ key: 'articleId', match: { value: articleId } }],
+        },
+        limit: 10000, // fetch all chunks for this article
+        with_payload: false,
+        with_vector: false,
       });
 
-      if (existing.points.length === 0) return 0;
+      const count = existing.points.length;
+      if (count === 0) return 0;
 
       await this.client.delete(this.collection, {
         wait: true,
-        filter: { must: [{ key: 'articleId', match: { value: articleId } }] },
+        filter: {
+          must: [{ key: 'articleId', match: { value: articleId } }],
+        },
       });
 
-      return existing.points.length;
+      this.logger.log(`Deleted ${count} vector(s) for articleId=${articleId}`);
+      return count;
     } catch (err) {
-      this.logger.error(`Qdrant delete error: ${String(err)}`);
-      throw new ServiceUnavailableException('Vector DB is unavailable');
+      this.logger.error(`Qdrant deleteByArticleId failed: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        'Vector DB is unavailable — delete failed',
+      );
     }
   }
 
@@ -109,22 +128,35 @@ export class QdrantService {
       const must: object[] = [];
 
       if (filter?.articleStatus) {
-        must.push({ key: 'status', match: { value: filter.articleStatus } });
+        must.push({
+          key: 'status',
+          match: { value: filter.articleStatus },
+        });
       }
+
       if (filter?.categoryId) {
-        must.push({ key: 'categoryId', match: { value: filter.categoryId } });
+        must.push({
+          key: 'categoryId',
+          match: { value: filter.categoryId },
+        });
       }
+
+      // Tags are stored as an array — use `any` match (contains at least one)
       if (filter?.tags?.length) {
-        for (const tag of filter.tags) {
-          must.push({ key: 'tags', match: { value: tag } });
-        }
+        must.push({
+          key: 'tags',
+          match: { any: filter.tags },
+        });
       }
+
+      const qdrantFilter: QdrantFilter | undefined =
+        must.length > 0 ? { must } : undefined;
 
       const results = await this.client.search(this.collection, {
         vector,
         limit,
         with_payload: true,
-        ...(must.length > 0 ? { filter: { must } } : {}),
+        ...(qdrantFilter ? { filter: qdrantFilter } : {}),
       });
 
       return results.map((r) => {
@@ -137,8 +169,10 @@ export class QdrantService {
         };
       });
     } catch (err) {
-      this.logger.error(`Qdrant search error: ${String(err)}`);
-      throw new ServiceUnavailableException('Vector DB is unavailable');
+      this.logger.error(`Qdrant search failed: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        'Vector DB is unavailable — search failed',
+      );
     }
   }
 }
