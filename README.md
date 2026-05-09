@@ -264,3 +264,69 @@ Exceeding these limits returns HTTP `429` from Google. The app retries automatic
 - The `GEMINI_API_KEY` is never logged or included in error responses
 - Do not commit your `.env` file — it is listed in `.gitignore`
 - Rotate your key immediately at [https://aistudio.google.com](https://aistudio.google.com) if it is accidentally exposed
+
+## RAG (Retrieval-Augmented Generation)
+
+### Models used
+
+| Purpose         | Model                                 |
+| --------------- | ------------------------------------- |
+| Text generation | `gemini-2.5-flash`                    |
+| Embeddings      | `text-embedding-004` (768 dimensions) |
+
+### Vector DB
+
+**Qdrant** runs as a Docker service (`vectordb`) on port `6333`.
+Data is persisted in the `qdrant-data` named volume.
+Qdrant UI is available at [http://localhost:6333/dashboard](http://localhost:6333/dashboard).
+
+### Startup flow
+
+```bash
+# 1. Copy and fill env
+cp .env.example .env
+# Set GEMINI_API_KEY, DATABASE_URL, and RAG_* vars
+
+# 2. Start all services
+docker compose up --build
+
+# 3. Get a token
+curl -X POST http://localhost:4000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"login":"admin","password":"admin123"}'
+
+TOKEN=<paste accessToken>
+
+# 4. Build the vector index (index published articles)
+curl -X POST http://localhost:4000/ai/rag/index \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"onlyPublished": true}'
+
+# 5. Semantic search
+curl -X POST http://localhost:4000/ai/rag/search \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "how to use Prisma with NestJS", "limit": 3}'
+
+# 6. Chat with your knowledge base
+curl -X POST http://localhost:4000/ai/rag/chat \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What ORM does this project use and why?", "conversationId": "session-1"}'
+
+# 7. Continue the conversation
+curl -X POST http://localhost:4000/ai/rag/chat \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What are its advantages?", "conversationId": "session-1"}'
+```
+
+### Known RAG limitations
+
+- **Indexing time** — embedding each chunk calls the Gemini API sequentially; indexing 100 articles may take 2–5 minutes on the free tier
+- **Free tier embedding quota** — `text-embedding-004` shares the same 1 500 req/day limit as generation models
+- **Vector dimensions** — fixed at 768 (output of `text-embedding-004`); changing the model requires dropping and recreating the Qdrant collection
+- **In-memory conversation history** — RAG conversations reset on server restart; use `conversationId` to track sessions client-side
+- **Chunk size tuning** — default 800/200 (size/overlap) works well for articles; very short articles may produce a single chunk
+- **Regional availability** — same as Gemini API; EU restrictions apply to embedding calls as well
