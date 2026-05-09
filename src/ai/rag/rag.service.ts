@@ -5,10 +5,11 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { QdrantService } from './services/qdrant.service';
+import { QdrantService, hashContent } from './services/qdrant.service';
 import { EmbeddingService } from './services/embedding.service';
 import { ChunkerService } from './services/chunker.service';
 import { RagConversationService } from './services/rag-conversation.service';
+import { RerankerService } from './services/reranker.service';
 import { GeminiService } from '../services/gemini.service';
 import { ArticleService } from '../../article/article.service';
 import { RAG_PROMPTS } from './prompts/rag.prompts';
@@ -19,6 +20,12 @@ import { ArticleStatus, Article } from '../../article/entities/article.entity';
 
 const RAG_PAGE_SIZE = 1000;
 
+interface IndexArticleResult {
+  added: number;
+  skipped: number;
+  deleted: number;
+}
+
 @Injectable()
 export class RagService {
   private readonly logger = new Logger(RagService.name);
@@ -28,9 +35,80 @@ export class RagService {
     private readonly embedding: EmbeddingService,
     private readonly chunker: ChunkerService,
     private readonly conversation: RagConversationService,
+    private readonly reranker: RerankerService,
     private readonly gemini: GeminiService,
     private readonly articleService: ArticleService,
   ) {}
+
+  // Incremental indexing
+
+  private async indexArticleIncremental(
+    article: Article,
+  ): Promise<IndexArticleResult> {
+    const fullText = `${article.title}\n\n${article.content}`;
+    const chunks = this.chunker.chunk(fullText);
+
+    if (chunks.length === 0) {
+      this.logger.warn(
+        `Article "${article.title}" produced 0 chunks — skipping`,
+      );
+      return { added: 0, skipped: 0, deleted: 0 };
+    }
+
+    // Fetch hashes already stored in Qdrant for this article
+    const existingHashes = await this.qdrant.getExistingHashes(article.id);
+
+    const toEmbed: Array<{ chunk: (typeof chunks)[number]; hash: string }> = [];
+    let skipped = 0;
+
+    for (const chunk of chunks) {
+      const hash = hashContent(chunk.text);
+      const storedHash = existingHashes.get(chunk.index);
+
+      if (storedHash === hash) {
+        // Chunk text is identical to what is already indexed — skip embedding
+        skipped++;
+      } else {
+        toEmbed.push({ chunk, hash });
+      }
+    }
+
+    if (toEmbed.length > 0) {
+      const vectors = await this.embedding.embedBatch(
+        toEmbed.map((c) => c.chunk.text),
+      );
+
+      const points = toEmbed.map(({ chunk, hash }, i) => ({
+        id: uuidv4(),
+        vector: vectors[i],
+        payload: {
+          articleId: article.id,
+          articleTitle: article.title,
+          chunkIndex: chunk.index,
+          chunkText: chunk.text,
+          status: article.status,
+          categoryId: article.categoryId ?? null,
+          tags: article.tags ?? [],
+          contentHash: hash,
+        },
+      }));
+
+      await this.qdrant.upsertVectors(points);
+    }
+
+    // Remove chunks that no longer exist (article was shortened)
+    const validIndexes = chunks.map((c) => c.index);
+    const deleted = await this.qdrant.deleteStaleChunks(
+      article.id,
+      validIndexes,
+    );
+
+    this.logger.log(
+      `Article "${article.title}" (${article.id}): +${toEmbed.length} indexed, =${skipped} skipped, -${deleted} deleted`,
+    );
+
+    return { added: toEmbed.length, skipped, deleted };
+  }
 
   private async fetchArticles(dto: ReindexDto): Promise<Article[]> {
     const filters =
@@ -51,54 +129,64 @@ export class RagService {
     return articles;
   }
 
-  private async indexArticle(article: Article): Promise<number> {
-    // Always delete existing vectors first — prevents stale chunks after content edits
-    await this.qdrant.deleteByArticleId(article.id);
+  // Hybrid retrieval
 
-    const fullText = `${article.title}\n\n${article.content}`;
-    const chunks = this.chunker.chunk(fullText);
+  private async hybridSearch(
+    query: string,
+    limit: number,
+    filter?: { articleStatus?: string; categoryId?: string; tags?: string[] },
+  ) {
+    const fetchLimit = limit * 3; // over-fetch so fusion has enough candidates
 
-    if (chunks.length === 0) {
-      this.logger.warn(
-        `Article "${article.title}" produced 0 chunks — skipping`,
+    let queryVector: number[];
+    try {
+      queryVector = await this.embedding.embed(query);
+    } catch (err) {
+      this.logger.error(`Embedding failed: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        'Embedding service temporarily unavailable',
       );
-      return 0;
     }
 
-    const vectors = await this.embedding.embedBatch(chunks.map((c) => c.text));
+    // Run semantic and lexical in parallel
+    const [semanticHits, lexicalHits] = await Promise.all([
+      this.qdrant.search(queryVector, fetchLimit, filter),
+      this.qdrant.lexicalSearch(query, fetchLimit, filter),
+    ]);
 
-    const points = chunks.map((chunk, i) => ({
-      id: uuidv4(),
-      vector: vectors[i],
-      payload: {
-        articleId: article.id,
-        articleTitle: article.title,
-        chunkIndex: chunk.index,
-        chunkText: chunk.text,
-        status: article.status,
-        categoryId: article.categoryId ?? null,
-        tags: article.tags ?? [],
-      },
-    }));
-
-    await this.qdrant.upsertVectors(points);
-
-    this.logger.log(
-      `Indexed article "${article.title}" (${article.id}) — ${chunks.length} chunk(s)`,
+    this.logger.debug(
+      `Hybrid retrieval: semantic=${semanticHits.length} lexical=${lexicalHits.length}`,
     );
 
-    return chunks.length;
+    // Merge with Reciprocal Rank Fusion
+    const fused = this.reranker.fusionMerge(semanticHits, lexicalHits);
+
+    // Secondary re-ranking on the fused candidates
+    const reranked = this.reranker.rerank(query, fused, limit);
+    this.reranker.logRankingDecision(fused, reranked);
+
+    return reranked;
   }
+
+  // Public endpoints
 
   async reindex(dto: ReindexDto) {
     await this.qdrant.ensureCollection();
 
     const articles = await this.fetchArticles(dto);
+
+    let totalAdded = 0;
+    let totalSkipped = 0;
+    let totalDeleted = 0;
     let totalChunks = 0;
 
     for (const article of articles) {
       try {
-        totalChunks += await this.indexArticle(article);
+        const result = await this.indexArticleIncremental(article);
+        totalAdded += result.added;
+        totalSkipped += result.skipped;
+        totalDeleted += result.deleted;
+        totalChunks += result.added + result.skipped;
       } catch (err) {
         // Log and continue — one failing article should not abort full reindex
         this.logger.error(
@@ -108,12 +196,15 @@ export class RagService {
     }
 
     this.logger.log(
-      `Reindex complete: ${articles.length} articles, ${totalChunks} chunks`,
+      `Reindex complete: ${articles.length} articles | +${totalAdded} added | =${totalSkipped} skipped | -${totalDeleted} deleted`,
     );
 
     return {
       indexedArticles: articles.length,
       indexedChunks: totalChunks,
+      addedChunks: totalAdded,
+      skippedChunks: totalSkipped,
+      deletedChunks: totalDeleted,
       vectorCollection:
         process.env.RAG_VECTOR_COLLECTION ?? 'knowledge_hub_articles',
     };
@@ -122,23 +213,20 @@ export class RagService {
   async search(dto: RagSearchDto) {
     await this.qdrant.ensureCollection();
 
-    let queryVector: number[];
-    try {
-      queryVector = await this.embedding.embed(dto.query);
-    } catch (err) {
-      this.logger.error(`Embedding failed for search query: ${String(err)}`);
-      throw new ServiceUnavailableException(
-        'Embedding service temporarily unavailable',
-      );
-    }
-
-    const results = await this.qdrant.search(queryVector, dto.limit ?? 5, {
+    const results = await this.hybridSearch(dto.query, dto.limit ?? 5, {
       articleStatus: dto.articleStatus,
       categoryId: dto.categoryId,
       tags: dto.tags,
     });
 
-    return { results };
+    return {
+      results: results.map((r) => ({
+        articleId: r.articleId,
+        articleTitle: r.articleTitle,
+        chunk: r.chunk,
+        similarity: r.similarity,
+      })),
+    };
   }
 
   async chat(dto: RagChatDto) {
@@ -147,17 +235,7 @@ export class RagService {
     const conversationId = dto.conversationId ?? uuidv4();
     const history = this.conversation.getHistory(conversationId);
 
-    let queryVector: number[];
-    try {
-      queryVector = await this.embedding.embed(dto.question);
-    } catch (err) {
-      this.logger.error(`Embedding failed for chat question: ${String(err)}`);
-      throw new ServiceUnavailableException(
-        'Embedding service temporarily unavailable',
-      );
-    }
-
-    const hits = await this.qdrant.search(queryVector, 5);
+    const hits = await this.hybridSearch(dto.question, 5);
 
     if (hits.length === 0) {
       const answer =
@@ -206,9 +284,7 @@ export class RagService {
         `No index entries found for articleId=${articleId}`,
       );
     }
-    this.logger.log(
-      `Removed ${deleted} vector(s) for articleId=${articleId} from index`,
-    );
+    this.logger.log(`Removed ${deleted} vector(s) for articleId=${articleId}`);
   }
 
   getConversationHistory(conversationId: string) {

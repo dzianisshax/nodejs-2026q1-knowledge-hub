@@ -5,6 +5,7 @@ import { QdrantService } from './services/qdrant.service';
 import { EmbeddingService } from './services/embedding.service';
 import { ChunkerService } from './services/chunker.service';
 import { RagConversationService } from './services/rag-conversation.service';
+import { RerankerService } from './services/reranker.service';
 import { ArticleModule } from '../../article/article.module';
 import { AiModule } from '../ai.module';
 
@@ -17,6 +18,7 @@ import { AiModule } from '../ai.module';
     EmbeddingService,
     ChunkerService,
     RagConversationService,
+    RerankerService,
   ],
 })
 export class RagModule {}
